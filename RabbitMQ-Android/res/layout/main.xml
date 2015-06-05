@@ -2,36 +2,46 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
             android:orientation="vertical"
             android:layout_width="fill_parent"
-            android:layout_height="fill_parent" android:paddingTop="30dp"
+            android:layout_height="fill_parent"
+            android:paddingTop="30dp"
             android:padding="20dp">
     <LinearLayout
             android:layout_width="fill_parent"
-            android:layout_height="fill_parent" android:orientation="vertical"
-            >
+            android:layout_height="fill_parent"
+            android:orientation="vertical"
+            android:weightSum="1">
 
         <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Your ID:"
-                android:id="@+id/textView" android:layout_gravity="center_horizontal"/>
+                android:id="@+id/textView"
+                android:layout_gravity="center_horizontal"/>
         <EditText
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:id="@+id/editText"/>
+                android:id="@+id/editTextID"/>
         <Button
+                style="?android:attr/buttonStyleSmall"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="36dp"
                 android:text="Set"
-                android:id="@+id/button" android:layout_gravity="center_horizontal" android:layout_marginBottom="20dp"/>
+                android:id="@+id/buttonSetID"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="20dp"
+                />
         <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Send Message:"
-                android:id="@+id/textView2" android:layout_gravity="center_horizontal" android:layout_marginTop="50dp"/>
+                android:id="@+id/textView2"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="50dp"/>
         <LinearLayout
                 android:orientation="horizontal"
                 android:layout_width="fill_parent"
-                android:layout_height="fill_parent" android:weightSum="1">
+                android:layout_height="fill_parent"
+                android:weightSum="1">
             <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -40,40 +50,45 @@
             <EditText
                     android:layout_width="117dp"
                     android:layout_height="wrap_content"
-                    android:id="@+id/editText2" android:layout_marginLeft="30dp" android:layout_marginRight="30dp"
-                    />
+                    android:id="@+id/editTextTarget"
+                    android:layout_marginLeft="30dp"
+                    android:layout_marginRight="30dp"
+                    android:layout_weight="1"/>
             <Button
                     style="?android:attr/buttonStyleSmall"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     android:text="Send"
-                    android:id="@+id/button2" android:minWidth="10dp" android:layout_weight="0.98"/>
+                    android:id="@+id/buttonSend"
+                    android:minWidth="10dp"
+                    android:layout_weight="0"
+                    />
         </LinearLayout>
         <EditText
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:id="@+id/editText3" android:nestedScrollingEnabled="true" android:layout_margin="15dp"/>
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Send Broadcast:"
-                  android:id="@+id/textView4" android:layout_gravity="center_horizontal"
+                android:id="@+id/editTextMsg"
+                android:nestedScrollingEnabled="true"
+                android:layout_margin="15dp"/>
+        <TextView android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:text="Send Broadcast:"
+                  android:id="@+id/textView4"
+                  android:layout_gravity="center_horizontal"
                   android:layout_marginTop="50dp"/>
-        <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent"
-                      android:layout_height="fill_parent" android:weightSum="1">
-            <EditText android:layout_width="117dp" android:layout_height="wrap_content" android:id="@+id/editText4"
-                      android:layout_marginLeft="30dp" android:layout_marginRight="30dp"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="targetID:"
-                      android:id="@+id/textView4"/>
-            <Button style="?android:attr/buttonStyleSmall" android:layout_width="wrap_content"
-                    android:layout_height="match_parent" android:text="Send" android:id="@+id/button3"
-                    android:minWidth="10dp" android:layout_weight="0.98"/>
-        </LinearLayout>
-        <EditText android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/editText4"
-                  android:nestedScrollingEnabled="true" android:layout_margin="15dp"/>
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                  android:text="MessageReceived:" android:id="@+id/textView5" android:layout_gravity="center_horizontal"
-                  android:layout_marginTop="50dp"/>
-        <EditText android:layout_width="match_parent" android:layout_height="wrap_content" android:id="@+id/editText5"
-                  android:nestedScrollingEnabled="true" android:layout_margin="15dp" android:editable="false"
-                  android:text="wadasdsa\nsafasfas\nasdfasf\nasfasf"/>
+        <EditText android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:id="@+id/editTextGroupMsg"
+                  android:nestedScrollingEnabled="true"
+                  android:layout_margin="15dp"/>
+        <Button style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="center_horizontal"
+                android:text="Send"
+                android:id="@+id/buttonSendGroup"
+                android:minWidth="10dp"
+                android:layout_weight="1.13"/>
     </LinearLayout>
 </ScrollView>
 
