@@ -16,15 +16,6 @@ public class QSender {
 		ConnectionFactory factory = new ConnectionFactory();
 		try {
 			factory.setUri("amqp://localhost:5672");
-		} catch (URISyntaxException e) {
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		} catch (KeyManagementException e) {
-			e.printStackTrace();
-		}
-
-		try {
 			Connection conn = factory.newConnection();
 			Channel channel = conn.createChannel();
 			channel.queueDeclare("lhc", false, false, false, null);
@@ -35,12 +26,9 @@ public class QSender {
 				channel.basicPublish("", "lhc", null, message.getBytes());
 				System.out.println(" [x] Sent '" + message + "'");
 			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (TimeoutException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
-
 	}
 
 

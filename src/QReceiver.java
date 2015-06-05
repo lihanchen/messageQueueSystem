@@ -3,11 +3,6 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.QueueingConsumer;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.util.concurrent.TimeoutException;
 
 
 public class QReceiver {
@@ -15,11 +10,6 @@ public class QReceiver {
 		ConnectionFactory factory = new ConnectionFactory();
 		try {
 			factory.setUri("amqp://localhost:5672");
-		} catch (URISyntaxException | NoSuchAlgorithmException | KeyManagementException e) {
-			e.printStackTrace();
-		}
-
-		try {
 			Connection conn = factory.newConnection();
 			Channel channel = conn.createChannel();
 			channel.queueDeclare("lhc", false, false, false, null);
@@ -36,9 +26,7 @@ public class QReceiver {
 				String message = new String(delivery.getBody());
 				System.out.println(" [x] Received '" + message + "'");
 			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (TimeoutException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
