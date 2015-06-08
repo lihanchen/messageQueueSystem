@@ -20,16 +20,8 @@
         <EditText
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:id="@+id/editTextID"/>
-        <Button
-                style="?android:attr/buttonStyleSmall"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:text="Set"
-                android:id="@+id/buttonSetID"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginBottom="20dp"
-                />
+                android:id="@+id/editTextID"
+                android:editable="false"/>
         <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

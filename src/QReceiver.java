@@ -12,9 +12,9 @@ public class QReceiver {
 			factory.setUri("amqp://lhc:123@172.17.187.114:5672");
 			Connection conn = factory.newConnection();
 			Channel channel = conn.createChannel();
-			channel.queueDeclare("lhc", false, false, false, null);
+			channel.queueDeclare(args[0], false, false, false, null);
 			QueueingConsumer consumer = new QueueingConsumer(channel);
-			channel.basicConsume("lhc", true, consumer);
+			channel.basicConsume(args[0], true, consumer);
 
 			QueueingConsumer.Delivery delivery=null;
 			while (true){

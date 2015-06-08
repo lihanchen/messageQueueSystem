@@ -10,12 +10,12 @@ import com.rabbitmq.client.QueueingConsumer;
 import java.util.Scanner;
 
 public class Publisher {
-	private static final String EXCHANGE_NAME = "group";
+	private static final String EXCHANGE_NAME = "broadcast_group";
 
 	public static void main(String[] argv){
 		try {
 			ConnectionFactory factory = new ConnectionFactory();
-			factory.setHost("localhost");
+			factory.setUri("amqp://lhc:123@172.17.187.114:5672");
 			Connection connection = factory.newConnection();
 			Channel channel = connection.createChannel();
 

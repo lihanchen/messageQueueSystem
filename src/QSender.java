@@ -18,12 +18,12 @@ public class QSender {
 			factory.setUri("amqp://lhc:123@172.17.187.114:5672");
 			Connection conn = factory.newConnection();
 			Channel channel = conn.createChannel();
-			channel.queueDeclare("lhc", false, false, false, null);
+			channel.queueDeclare(args[0], false, false, false, null);
 			String message = null;
 			Scanner scanner=new Scanner(System.in);
 			while (true) {
 				message=scanner.nextLine();
-				channel.basicPublish("", "lhc", null, message.getBytes());
+				channel.basicPublish("", args[0], null, message.getBytes());
 				System.out.println(" [x] Sent '" + message + "'");
 			}
 		} catch (Exception e) {
