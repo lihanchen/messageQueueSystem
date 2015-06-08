@@ -60,7 +60,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:id="@+id/editTextMsg"
-                android:nestedScrollingEnabled="true"
                 android:layout_margin="15dp"/>
         <TextView android:layout_width="wrap_content"
                   android:layout_height="wrap_content"
@@ -71,7 +70,6 @@
         <EditText android:layout_width="match_parent"
                   android:layout_height="wrap_content"
                   android:id="@+id/editTextGroupMsg"
-                  android:nestedScrollingEnabled="true"
                   android:layout_margin="15dp"/>
         <Button style="?android:attr/buttonStyleSmall"
                 android:layout_width="wrap_content"

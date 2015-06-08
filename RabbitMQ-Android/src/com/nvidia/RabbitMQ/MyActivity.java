@@ -2,21 +2,18 @@ package com.nvidia.RabbitMQ;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.AlertDialog.*;
-import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.QueueingConsumer;
 
-import java.util.Scanner;
+import java.lang.ref.WeakReference;
 public class MyActivity extends Activity {
 	/**
 	 * Called when the activity is first created.
@@ -25,34 +22,14 @@ public class MyActivity extends Activity {
 	final public String broadcastExchangeName="broadcast_group";
 
 	enum messageWhat{
-		ReceivedP2PMessage, ReceivedBroadCast, sendFailed, setFailed, FatalErr
+		ReceivedP2PMessage, ReceivedBroadCast, sendFailed, FatalErr
 	}
 
 	public String currentID;
 	public ConnectionFactory factory;
 	public Channel sendChannel;
 
-	public Handler handler=new Handler(){
-		@Override
-		public void handleMessage(Message msg) {
-			if (msg.what==messageWhat.FatalErr.ordinal()){
-					showMessageBox("Server Error");
-			}
-
-			if (msg.what==messageWhat.ReceivedBroadCast.ordinal()){
-				showMessageBox("Received Broadcast:\n"+msg.obj);
-			}
-
-			if (msg.what==messageWhat.ReceivedP2PMessage.ordinal()){
-				showMessageBox("Received Message:\n"+msg.obj);
-			}
-
-			if (msg.what==messageWhat.sendFailed.ordinal()){
-				showMessageBox("Received Message:\n"+msg.obj);
-			}
-		}
-	};
-
+	public MyHandler handler;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -60,6 +37,7 @@ public class MyActivity extends Activity {
 		setContentView(R.layout.main);
 		currentID=Integer.toString((int)(Math.random()*1000));
 		((EditText)findViewById(R.id.editTextID)).setText(currentID);
+		handler=new MyHandler(this);
 		new Thread(){
 			@Override
 			public void run() {
@@ -181,11 +159,39 @@ public class MyActivity extends Activity {
 		broadcastReceiver.start();
 
 	}
+}
+
+class MyHandler extends Handler {
+	Activity activity;
+	AlertDialog.Builder builder;
+
+	public MyHandler(Activity activity) {
+		this.activity=activity;
+		builder = new AlertDialog.Builder(activity);
+		builder.setPositiveButton("OK",null);
+	}
+
+	@Override
+	public void handleMessage(Message msg) {
+		if (msg.what==MyActivity.messageWhat.FatalErr.ordinal()){
+			showMessageBox("Server Error");
+		}
+
+		if (msg.what==MyActivity.messageWhat.ReceivedBroadCast.ordinal()){
+			showMessageBox("Received Broadcast:\n"+msg.obj);
+		}
+
+		if (msg.what==MyActivity.messageWhat.ReceivedP2PMessage.ordinal()){
+			showMessageBox("Received Message:\n"+msg.obj);
+		}
+
+		if (msg.what==MyActivity.messageWhat.sendFailed.ordinal()){
+			showMessageBox("Received Message:\n"+msg.obj);
+		}
+	}
 
 	public void showMessageBox(String msg){
-		AlertDialog.Builder builder = new AlertDialog.Builder(MyActivity.this);
 		builder.setMessage(msg).setTitle("Message");
-		builder.setPositiveButton("OK",null);
 		builder.create().show();
 	}
 }
