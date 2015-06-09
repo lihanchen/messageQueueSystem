@@ -13,7 +13,6 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.QueueingConsumer;
 
-import java.lang.ref.WeakReference;
 public class MyActivity extends Activity {
 	/**
 	 * Called when the activity is first created.
@@ -28,16 +27,18 @@ public class MyActivity extends Activity {
 	public String currentID;
 	public ConnectionFactory factory;
 	public Channel sendChannel;
+	public static Activity activity;
+	Thread broadcastReceiver,queueReceiver;
 
-	public MyHandler handler;
+	public MyHandler handler=new MyHandler();
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
+		activity=this;
 		currentID=Integer.toString((int)(Math.random()*1000));
 		((EditText)findViewById(R.id.editTextID)).setText(currentID);
-		handler=new MyHandler(this);
 		new Thread(){
 			@Override
 			public void run() {
@@ -53,13 +54,6 @@ public class MyActivity extends Activity {
 				}
 			}
 		}.start();
-
-
-//		(findViewById(R.id.buttonSetID)).setOnClickListener(new View.OnClickListener() {
-//			public void onClick(View v) {
-//				showMessageBox("shit");
-//			}
-//		});
 
 		(findViewById(R.id.buttonSend)).setOnClickListener(new View.OnClickListener() {
 			public void onClick(View v) {
@@ -94,7 +88,7 @@ public class MyActivity extends Activity {
 			}
 		});
 
-		Thread queueReceiver=new Thread(){
+		queueReceiver=new Thread(){
 			@Override
 			public void run() {
 				try {
@@ -110,10 +104,10 @@ public class MyActivity extends Activity {
 					while (true){
 						try {
 							String msg=new String(consumer.nextDelivery().getBody());
-							Log.e("rabbitMQ"," [x] Received '" + msg + "'");
+							Log.w("rabbitMQ"," [x] Received '" + msg + "'");
 							handler.obtainMessage(messageWhat.ReceivedP2PMessage.ordinal(),msg).sendToTarget();
 						} catch (InterruptedException e) {
-							e.printStackTrace();
+							return;
 						}
 					}
 				} catch (Exception e) {
@@ -124,7 +118,7 @@ public class MyActivity extends Activity {
 		};
 		queueReceiver.start();
 
-		Thread broadcastReceiver=new Thread(){
+		broadcastReceiver=new Thread(){
 			@Override
 			public void run() {
 				try {
@@ -144,10 +138,10 @@ public class MyActivity extends Activity {
 					while (true){
 						try {
 							String msg=new String(consumer.nextDelivery().getBody());
-							Log.e("rabbitMQ", " [x] Received Broadcast'" + msg + "'");
+							Log.w("rabbitMQ", " [x] Received Broadcast'" + msg + "'");
 							handler.obtainMessage(messageWhat.ReceivedBroadCast.ordinal(),msg).sendToTarget();
 						} catch (InterruptedException e) {
-							e.printStackTrace();
+							return;
 						}
 					}
 				} catch (Exception e) {
@@ -157,25 +151,19 @@ public class MyActivity extends Activity {
 			}
 		};
 		broadcastReceiver.start();
+	}
 
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();
+		queueReceiver.interrupt();
+		broadcastReceiver.interrupt();
 	}
 }
 
 class MyHandler extends Handler {
-	Activity activity;
-	AlertDialog.Builder builder;
-
-	public MyHandler(Activity activity) {
-		this.activity=activity;
-		builder = new AlertDialog.Builder(activity);
-		builder.setPositiveButton("OK",null);
-	}
-
 	@Override
 	public void handleMessage(Message msg) {
-		if (msg.what==MyActivity.messageWhat.FatalErr.ordinal()){
-			showMessageBox("Server Error");
-		}
 
 		if (msg.what==MyActivity.messageWhat.ReceivedBroadCast.ordinal()){
 			showMessageBox("Received Broadcast:\n"+msg.obj);
@@ -185,13 +173,20 @@ class MyHandler extends Handler {
 			showMessageBox("Received Message:\n"+msg.obj);
 		}
 
+		if (msg.what==MyActivity.messageWhat.FatalErr.ordinal()){
+			showMessageBox("Server Error");
+		}
+
 		if (msg.what==MyActivity.messageWhat.sendFailed.ordinal()){
-			showMessageBox("Received Message:\n"+msg.obj);
+			showMessageBox("Send Failed");
 		}
 	}
 
 	public void showMessageBox(String msg){
-		builder.setMessage(msg).setTitle("Message");
-		builder.create().show();
+		new AlertDialog.Builder(MyActivity.activity)
+				.setPositiveButton("OK", null)
+				.setMessage(msg)
+				.setTitle("Message")
+				.create().show();
 	}
 }
