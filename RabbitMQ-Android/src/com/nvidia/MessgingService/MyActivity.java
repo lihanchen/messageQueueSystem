@@ -1,4 +1,4 @@
-package com.nvidia.RabbitMQ;
+package com.nvidia.MessgingService;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -104,7 +104,7 @@ public class MyActivity extends Activity {
 					while (true){
 						try {
 							String msg=new String(consumer.nextDelivery().getBody());
-							Log.w("rabbitMQ"," [x] Received '" + msg + "'");
+							Log.i("rabbitMQ", " [x] Received '" + msg + "'");
 							handler.obtainMessage(messageWhat.ReceivedP2PMessage.ordinal(),msg).sendToTarget();
 						} catch (InterruptedException e) {
 							return;
@@ -138,7 +138,7 @@ public class MyActivity extends Activity {
 					while (true){
 						try {
 							String msg=new String(consumer.nextDelivery().getBody());
-							Log.w("rabbitMQ", " [x] Received Broadcast'" + msg + "'");
+							Log.i("rabbitMQ", " [x] Received Broadcast'" + msg + "'");
 							handler.obtainMessage(messageWhat.ReceivedBroadCast.ordinal(),msg).sendToTarget();
 						} catch (InterruptedException e) {
 							return;
