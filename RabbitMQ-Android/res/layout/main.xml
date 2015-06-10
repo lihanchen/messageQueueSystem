@@ -79,6 +79,13 @@
                 android:id="@+id/buttonSendGroup"
                 android:minWidth="10dp"
                 android:layout_weight="1.13"/>
+        <Button
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Start Service"
+                android:id="@+id/buttonStartService"
+                android:layout_gravity="center_horizontal"/>
     </LinearLayout>
 </ScrollView>
 

@@ -2,16 +2,18 @@ package com.nvidia.MessgingService;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.NotificationManager;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.QueueingConsumer;
 
 public class MyActivity extends Activity {
 	/**
@@ -88,77 +90,14 @@ public class MyActivity extends Activity {
 			}
 		});
 
-		queueReceiver=new Thread(){
-			@Override
-			public void run() {
-				try {
-					factory = new ConnectionFactory();
-					factory.setUri(serverURI);
-					factory.setConnectionTimeout(2000);
-					Channel channel;
-					Connection conn = factory.newConnection();
-					channel = conn.createChannel();
-					channel.queueDeclare(currentID, false, false, false, null);
-					QueueingConsumer consumer = new QueueingConsumer(channel);
-					channel.basicConsume(currentID, true, consumer);
-					while (true){
-						try {
-							String msg=new String(consumer.nextDelivery().getBody());
-							Log.i("rabbitMQ", " [x] Received '" + msg + "'");
-							handler.obtainMessage(messageWhat.ReceivedP2PMessage.ordinal(),msg).sendToTarget();
-						} catch (InterruptedException e) {
-							return;
-						}
-					}
-				} catch (Exception e) {
-					handler.obtainMessage(messageWhat.FatalErr.ordinal()).sendToTarget();
-					e.printStackTrace();
-				}
+		(findViewById(R.id.buttonStartService)).setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+				startService(new Intent(MyActivity.this, MessagingServices.class));
 			}
-		};
-		queueReceiver.start();
+		});
 
-		broadcastReceiver=new Thread(){
-			@Override
-			public void run() {
-				try {
-					factory = new ConnectionFactory();
-					factory.setUri(serverURI);
-					factory.setConnectionTimeout(2000);
-					Channel channel;
-					Connection conn = factory.newConnection();
-					channel = conn.createChannel();
-					channel.exchangeDeclare(broadcastExchangeName, "fanout");
-					String queueName = channel.queueDeclare().getQueue();
-					channel.queueBind(queueName, broadcastExchangeName, "");
-					channel.queueDeclare(currentID, false, false, false, null);
-
-					QueueingConsumer consumer = new QueueingConsumer(channel);
-					channel.basicConsume(queueName, true, consumer);
-					while (true){
-						try {
-							String msg=new String(consumer.nextDelivery().getBody());
-							Log.i("rabbitMQ", " [x] Received Broadcast'" + msg + "'");
-							handler.obtainMessage(messageWhat.ReceivedBroadCast.ordinal(),msg).sendToTarget();
-						} catch (InterruptedException e) {
-							return;
-						}
-					}
-				} catch (Exception e) {
-					handler.obtainMessage(messageWhat.FatalErr.ordinal()).sendToTarget();
-					e.printStackTrace();
-				}
-			}
-		};
-		broadcastReceiver.start();
 	}
 
-	@Override
-	protected void onDestroy() {
-		super.onDestroy();
-		queueReceiver.interrupt();
-		broadcastReceiver.interrupt();
-	}
 }
 
 class MyHandler extends Handler {
