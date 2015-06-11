@@ -48,6 +48,7 @@ public class MyActivity extends Activity {
 					factory = new ConnectionFactory();
 					factory.setUri(serverURI);
 					factory.setConnectionTimeout(2000);
+					factory.setRequestedHeartbeat(60);
 					Connection conn = factory.newConnection();
 					sendChannel = conn.createChannel();
 				} catch (Exception e) {

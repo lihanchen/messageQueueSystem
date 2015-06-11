@@ -52,6 +52,7 @@ public class MessagingServices extends IntentService {
 			factory = new ConnectionFactory();
 			factory.setUri(serverURI);
 			factory.setConnectionTimeout(2000);
+			factory.setRequestedHeartbeat(60);
 		}catch(Exception e){
 			e.printStackTrace();
 		}
