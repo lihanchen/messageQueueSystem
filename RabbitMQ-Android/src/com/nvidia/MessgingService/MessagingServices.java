@@ -2,6 +2,9 @@ package com.nvidia.MessgingService;
 
 import android.app.IntentService;
 import android.app.NotificationManager;
+import android.os.Handler;
+import android.os.Message;
+import android.os.Messenger;
 import android.support.v4.app.NotificationCompat;
 import android.content.Intent;
 import android.os.IBinder;
@@ -21,6 +24,11 @@ public class MessagingServices extends IntentService {
 	static int notificationID=0;
 	NotificationCompat.Builder nBuilder;
 
+	public enum messageWhat{
+		Send, ReceivedP2PMessage, ReceivedBroadCast, sendFailed, FatalErr;
+	}
+
+
 	@Override
 	public void onCreate() {
 		super.onCreate();
@@ -38,12 +46,14 @@ public class MessagingServices extends IntentService {
 
 	@Override
 	public IBinder onBind(Intent intent) {
-		return null;
+		return messenger.getBinder();
 	}
 
 	final public String username="lhc";
 	final public String password="123";
-	final public String broadcastExchangeName="broadcast_group";
+	final public static String broadcastExchangeName="broadcast_group";
+	final Messenger messenger=new Messenger(new IncomingHandler());
+
 	static Thread broadcastReceiver,queueReceiver;
 	static ConnectionFactory factory;
 	static Channel sendChannel=null;
@@ -145,6 +155,25 @@ public class MessagingServices extends IntentService {
 			}
 		};
 		broadcastReceiver.start();
+	}
+
+	class IncomingHandler extends Handler {
+		@Override
+		public void handleMessage(Message msg) {
+			if (msg.what==messageWhat.Send.ordinal()){
+				com.nvidia.MessgingService.Message pendingMsg=(com.nvidia.MessgingService.Message)msg.obj;
+				String target;
+				if (pendingMsg.to==null)
+					target=MessagingServices.broadcastExchangeName;
+				else
+					target=pendingMsg.to;
+				try {
+					sendChannel.basicPublish(target, "", null, pendingMsg.Content.getBytes());
+				}catch(Exception e){
+					Log.e("ERROR","ERROR",e);
+				}
+			}
+		}
 	}
 
 }
