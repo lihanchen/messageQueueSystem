@@ -2,12 +2,12 @@ package com.nvidia.MessgingService;
 
 import android.app.IntentService;
 import android.app.NotificationManager;
+import android.content.Intent;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.support.v4.app.NotificationCompat;
-import android.content.Intent;
-import android.os.IBinder;
 import android.util.Log;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -16,49 +16,42 @@ import com.rabbitmq.client.QueueingConsumer;
 
 
 public class MessagingServices extends IntentService {
+	final public static String broadcastExchangeName = "broadcast_group";
 	/**
 	 * Creates an IntentService.  Invoked by your subclass's constructor.
 	 *
 	 */
 	public static NotificationManager notificationManager;
 	static int notificationID=0;
+	static Thread broadcastReceiver, queueReceiver;
+	static ConnectionFactory factory;
+	static Channel sendChannel = null;
+	static String IP;
+	static String ID;
+	final public String username="lhc";
+	final public String password="123";
+	final Messenger messenger=new Messenger(new IncomingHandler());
 	NotificationCompat.Builder nBuilder;
-
-	public enum messageWhat{
-		Send, ReceivedP2PMessage, ReceivedBroadCast, sendFailed, FatalErr;
-	}
-
-
-	@Override
-	public void onCreate() {
-		super.onCreate();
-		notificationManager=(NotificationManager)getSystemService(NOTIFICATION_SERVICE);
-		nBuilder=new NotificationCompat.Builder(this);
-		nBuilder.setContentTitle("NVIDIA Messaging Service");
-		nBuilder.setSmallIcon(R.drawable.icon);
-		nBuilder.setVibrate(new long[]{500,500});
-
-	}
 
 	public MessagingServices() {
 		super("NVIDIA Messaging Services");
 	}
 
 	@Override
+	public void onCreate() {
+		super.onCreate();
+		notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+		nBuilder = new NotificationCompat.Builder(this);
+		nBuilder.setContentTitle("NVIDIA Messaging Service");
+		nBuilder.setSmallIcon(R.drawable.icon);
+		nBuilder.setVibrate(new long[]{500, 500});
+
+	}
+
+	@Override
 	public IBinder onBind(Intent intent) {
 		return messenger.getBinder();
 	}
-
-	final public String username="lhc";
-	final public String password="123";
-	final public static String broadcastExchangeName="broadcast_group";
-	final Messenger messenger=new Messenger(new IncomingHandler());
-
-	static Thread broadcastReceiver,queueReceiver;
-	static ConnectionFactory factory;
-	static Channel sendChannel=null;
-	static String IP;
-	static String ID;
 
 	@Override
 	protected void onHandleIntent(Intent intent) {
@@ -88,8 +81,8 @@ public class MessagingServices extends IntentService {
 
 		queueReceiver=new Thread(){
 			public void run() {
-				Channel channel=null;
-				String ConsumerTag=null;
+				Channel channel;
+				String ConsumerTag;
 				try {
 					Connection conn = factory.newConnection();
 					channel = conn.createChannel();
@@ -157,6 +150,10 @@ public class MessagingServices extends IntentService {
 		broadcastReceiver.start();
 	}
 
+	public enum messageWhat {
+		Send, ReceivedP2PMessage, ReceivedBroadCast, sendFailed, FatalErr
+	}
+
 	class IncomingHandler extends Handler {
 		@Override
 		public void handleMessage(Message msg) {
@@ -164,14 +161,17 @@ public class MessagingServices extends IntentService {
 				com.nvidia.MessgingService.Message pendingMsg=(com.nvidia.MessgingService.Message)msg.obj;
 				String target;
 				if (pendingMsg.to==null)
-					target=MessagingServices.broadcastExchangeName;
+					try {
+						sendChannel.basicPublish(broadcastExchangeName, "", null, pendingMsg.Content.getBytes());
+					} catch (Exception e) {
+						Log.e("ERROR", "ERROR", e);
+					}
 				else
-					target=pendingMsg.to;
-				try {
-					sendChannel.basicPublish(target, "", null, pendingMsg.Content.getBytes());
-				}catch(Exception e){
-					Log.e("ERROR","ERROR",e);
-				}
+					try {
+						sendChannel.basicPublish("", pendingMsg.to, null, pendingMsg.Content.getBytes());
+					} catch (Exception e) {
+						Log.e("ERROR", "ERROR", e);
+					}
 			}
 		}
 	}

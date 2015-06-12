@@ -2,41 +2,36 @@ package com.nvidia.MessgingService;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.NotificationManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.os.*;
+import android.os.Bundle;
+import android.os.IBinder;
 import android.os.Message;
+import android.os.Messenger;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.ConnectionFactory;
 
 public class MyActivity extends Activity {
 	/**
 	 * Called when the activity is first created.
 	 */
 
-	public String currentID;
-	public ConnectionFactory factory;
-	public Channel sendChannel;
 	public static Activity activity;
 
 	//public MyHandler handler=new MyHandler();
 	Messenger messenger=null;
 	ServiceConnection connection=new ServiceConnection() {
 		public void onServiceConnected(ComponentName name, IBinder service) {
-			showMessageBox("Connected");
 			messenger=new Messenger(service);
 		}
 		public void onServiceDisconnected(ComponentName name) {
-			showMessageBox("Disconnected");
 			messenger = null;
 		}
 	};
+	AlertDialog.Builder alertBuilder;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -49,6 +44,12 @@ public class MyActivity extends Activity {
 		editTextIP.setText("172.17.187.114");
 		alertBuilder=new AlertDialog.Builder(MyActivity.this).setPositiveButton("OK", null).setTitle("Message");
 
+		Intent intent = new Intent(MyActivity.this, MessagingServices.class);
+		intent.putExtra("ID", editTextID.getText().toString());
+		intent.putExtra("IP", editTextIP.getText().toString());
+		startService(intent);
+		bindService(new Intent(MyActivity.this, MessagingServices.class), connection, Context.BIND_AUTO_CREATE);
+
 		(findViewById(R.id.buttonStartServer)).setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
@@ -56,7 +57,6 @@ public class MyActivity extends Activity {
 				intent.putExtra("ID", editTextID.getText().toString());
 				intent.putExtra("IP", editTextIP.getText().toString());
 				startService(intent);
-				bindService(new Intent(MyActivity.this,MessagingServices.class), connection, 0);
 			}
 		});
 
@@ -66,6 +66,8 @@ public class MyActivity extends Activity {
 					showMessageBox("Failed communicating with service");
 					return;
 				}
+
+				((EditText) findViewById(R.id.editTextMsg)).selectAll();
 
 				String message=((EditText)findViewById(R.id.editTextMsg)).getText().toString();
 				String target=((EditText)findViewById(R.id.editTextTarget)).getText().toString();
@@ -87,6 +89,7 @@ public class MyActivity extends Activity {
 					return;
 				}
 
+				((EditText) findViewById(R.id.editTextGroupMsg)).selectAll();
 				String message = ((EditText) findViewById(R.id.editTextGroupMsg)).getText().toString();
 
 				com.nvidia.MessgingService.Message msg
@@ -100,8 +103,6 @@ public class MyActivity extends Activity {
 		});
 	}
 
-
-	AlertDialog.Builder alertBuilder;
 	public void showMessageBox(String msg){
 		alertBuilder.setMessage(msg).create().show();
 	}
