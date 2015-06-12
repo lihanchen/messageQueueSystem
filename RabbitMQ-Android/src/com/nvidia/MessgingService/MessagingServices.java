@@ -58,7 +58,7 @@ public class MessagingServices extends IntentService {
 				broadcastReceiver.interrupt();
 				sendChannel.close();
 			} catch (Exception e) {
-				e.printStackTrace();
+				Log.e("ERROR","ERROR",e);
 			}
 		}
 
@@ -73,7 +73,7 @@ public class MessagingServices extends IntentService {
 			sendChannel = conn.createChannel();
 			Log.i("info","successs");
 		} catch (Exception e) {
-			e.printStackTrace();
+			Log.e("ERROR","ERROR",e);
 		}
 
 		queueReceiver=new Thread(){
@@ -93,17 +93,17 @@ public class MessagingServices extends IntentService {
 							nBuilder.setContentText("Received:\n"+msg);
 							notificationManager.notify(notificationID++, nBuilder.build());
 						} catch (InterruptedException e) {
+							try {
+								channel.basicCancel(ConsumerTag);
+								channel.close();
+							}catch(Exception e1) {
+								Log.e("ERROR","ERROR",e1);
+							}
 							return;
 						}
 					}
 				} catch (Exception e) {
-					Log.e("ERROR", e.getMessage());
-					try {
-						channel.basicCancel(ConsumerTag);
-						channel.close();
-					}catch(Exception e1) {
-						Log.e("ERROR", e1.getMessage());
-					}
+					Log.e("ERROR","ERROR",e);
 				}
 			}
 		};
@@ -130,17 +130,17 @@ public class MessagingServices extends IntentService {
 							nBuilder.setContentText("Received Broadcast:\n"+ msg);
 							notificationManager.notify(notificationID++, nBuilder.build());
 						} catch (InterruptedException e) {
+							try {
+								channel.basicCancel(ConsumerTag);
+								channel.close();
+							}catch(Exception e1) {
+								Log.e("ERROR","ERROR",e1);
+							}
 							return;
 						}
 					}
 				} catch (Exception e) {
-					try {
-						channel.basicCancel(ConsumerTag);
-						channel.close();
-					}catch(Exception e1){
-						e1.printStackTrace();
-					}
-					e.printStackTrace();
+					Log.e("ERROR","ERROR",e);
 				}
 			}
 		};
