@@ -11,17 +11,56 @@
             android:orientation="vertical"
             android:weightSum="1">
 
-        <TextView
+        <GridLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center_horizontal"
+                android:columnCount="2"
+                android:rowCount="2">
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Your ID:"
+                    android:id="@+id/textView"
+                    android:layout_gravity="center|left"/>
+            <EditText
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/editTextID"
+                    android:layout_gravity="center"
+                    android:layout_marginRight="55dp"/>
+            <TextView android:layout_width="wrap_content"
+                      android:layout_height="wrap_content"
+                      android:text="Server IP:"
+                      android:id="@+id/textView5"
+                      android:layout_gravity="center|left"/>
+            <EditText android:layout_width="match_parent"
+                      android:layout_height="wrap_content"
+                      android:id="@+id/editTextIP"
+                      android:layout_gravity="center"
+                      android:layout_marginRight="55dp"/>
+        </GridLayout>
+        <LinearLayout
+                android:orientation="horizontal"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Your ID:"
-                android:id="@+id/textView"
-                android:layout_gravity="center_horizontal"/>
-        <EditText
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:id="@+id/editTextID"
-                android:editable="false"/>
+                android:layout_gravity="center_horizontal">
+            <Button
+                    style="?android:attr/buttonStyleSmall"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="StartServer"
+                    android:id="@+id/buttonStartServer"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginRight="20dp"/>
+            <Button style="?android:attr/buttonStyleSmall"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="StopServer"
+                    android:id="@+id/buttonStopServer"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginLeft="20dp"/>
+        </LinearLayout>
         <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -79,13 +118,6 @@
                 android:id="@+id/buttonSendGroup"
                 android:minWidth="10dp"
                 android:layout_weight="1.13"/>
-        <Button
-                style="?android:attr/buttonStyleSmall"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Start Service"
-                android:id="@+id/buttonStartService"
-                android:layout_gravity="center_horizontal"/>
     </LinearLayout>
 </ScrollView>
 

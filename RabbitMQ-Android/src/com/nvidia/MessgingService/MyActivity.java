@@ -19,8 +19,6 @@ public class MyActivity extends Activity {
 	/**
 	 * Called when the activity is first created.
 	 */
-	final public String serverURI="amqp://lhc:123@172.17.187.114:5672";
-	final public String broadcastExchangeName="broadcast_group";
 
 	enum messageWhat{
 		ReceivedP2PMessage, ReceivedBroadCast, sendFailed, FatalErr
@@ -30,7 +28,6 @@ public class MyActivity extends Activity {
 	public ConnectionFactory factory;
 	public Channel sendChannel;
 	public static Activity activity;
-	Thread broadcastReceiver,queueReceiver;
 
 	public MyHandler handler=new MyHandler();
 
@@ -38,64 +35,56 @@ public class MyActivity extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
-		activity=this;
-		currentID=Integer.toString((int)(Math.random()*1000));
-		((EditText)findViewById(R.id.editTextID)).setText(currentID);
-		new Thread(){
+		activity = this;
+		currentID = Integer.toString((int) (Math.random() * 100));
+		EditText editTextID = (EditText) findViewById(R.id.editTextID);
+		EditText editTextIP = (EditText) findViewById(R.id.editTextIP);
+		editTextID.setText(currentID);
+		editTextIP.setText("172.17.187.114");
+
+		(findViewById(R.id.buttonStartServer)).setOnClickListener(new View.OnClickListener() {
 			@Override
-			public void run() {
-				try {
-					factory = new ConnectionFactory();
-					factory.setUri(serverURI);
-					factory.setConnectionTimeout(2000);
-					factory.setRequestedHeartbeat(60);
-					Connection conn = factory.newConnection();
-					sendChannel = conn.createChannel();
-				} catch (Exception e) {
-					handler.obtainMessage(messageWhat.FatalErr.ordinal()).sendToTarget();
-					e.printStackTrace();
-				}
-			}
-		}.start();
-
-		(findViewById(R.id.buttonSend)).setOnClickListener(new View.OnClickListener() {
 			public void onClick(View v) {
-				String message=((EditText)findViewById(R.id.editTextMsg)).getText().toString();
-				String target=((EditText)findViewById(R.id.editTextTarget)).getText().toString();
-				new Thread() {
-					public void run(){
-						try {
-							sendChannel.basicPublish("", target, null, message.getBytes());
-						} catch (Exception e){
-							handler.obtainMessage(messageWhat.sendFailed.ordinal()).sendToTarget();
-							e.printStackTrace();
-						}
-					}
-				}.start();
+				Intent intent=new Intent(MyActivity.this, MessagingServices.class);
+				intent.putExtra("ID",editTextID.getText().toString());
+				intent.putExtra("IP", editTextIP.getText().toString());
+				startService(intent);
 			}
 		});
 
-		(findViewById(R.id.buttonSendGroup)).setOnClickListener(new View.OnClickListener() {
-			public void onClick(View v) {
-				String message=((EditText)findViewById(R.id.editTextGroupMsg)).getText().toString();
-				new Thread() {
-					public void run(){
-						try {
-							sendChannel.basicPublish(broadcastExchangeName, "", null, message.getBytes());
-						} catch (Exception e){
-							handler.obtainMessage(messageWhat.sendFailed.ordinal()).sendToTarget();
-							e.printStackTrace();
-						}
-					}
-				}.start();
-			}
-		});
+//		(findViewById(R.id.buttonSend)).setOnClickListener(new View.OnClickListener() {
+//			public void onClick(View v) {
+//				String message=((EditText)findViewById(R.id.editTextMsg)).getText().toString();
+//				String target=((EditText)findViewById(R.id.editTextTarget)).getText().toString();
+//				new Thread() {
+//					public void run(){
+//						try {
+//							sendChannel.basicPublish("", target, null, message.getBytes());
+//						} catch (Exception e){
+//							handler.obtainMessage(messageWhat.sendFailed.ordinal()).sendToTarget();
+//							e.printStackTrace();
+//						}
+//					}
+//				}.start();
+//			}
+//		});
+//
+//		(findViewById(R.id.buttonSendGroup)).setOnClickListener(new View.OnClickListener() {
+//			public void onClick(View v) {
+//				String message=((EditText)findViewById(R.id.editTextGroupMsg)).getText().toString();
+//				new Thread() {
+//					public void run(){
+//						try {
+//							sendChannel.basicPublish(broadcastExchangeName, "", null, message.getBytes());
+//						} catch (Exception e){
+//							handler.obtainMessage(messageWhat.sendFailed.ordinal()).sendToTarget();
+//							e.printStackTrace();
+//						}
+//					}
+//				}.start();
+//			}
+//		});
 
-		(findViewById(R.id.buttonStartService)).setOnClickListener(new View.OnClickListener() {
-			public void onClick(View v) {
-				startService(new Intent(MyActivity.this, MessagingServices.class));
-			}
-		});
 
 	}
 

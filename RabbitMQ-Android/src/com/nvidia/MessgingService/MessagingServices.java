@@ -29,6 +29,7 @@ public class MessagingServices extends IntentService {
 		nBuilder.setContentTitle("NVIDIA Messaging Service");
 		nBuilder.setSmallIcon(R.drawable.icon);
 		nBuilder.setVibrate(new long[]{500,500});
+
 	}
 
 	public MessagingServices() {
@@ -40,33 +41,51 @@ public class MessagingServices extends IntentService {
 		return null;
 	}
 
-	final public String serverURI="amqp://lhc:123@172.17.187.114:5672";
+	final public String username="lhc";
+	final public String password="123";
 	final public String broadcastExchangeName="broadcast_group";
-	Thread broadcastReceiver,queueReceiver;
-	public String currentID="lhc";
-	public ConnectionFactory factory;
+	static Thread broadcastReceiver,queueReceiver;
+	static ConnectionFactory factory;
+	static Channel sendChannel=null;
+	static String IP;
+	static String ID;
 
 	@Override
 	protected void onHandleIntent(Intent intent) {
-		try{
+		if (sendChannel!=null) {
+			try {
+				queueReceiver.interrupt();
+				broadcastReceiver.interrupt();
+				sendChannel.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+
+		try {
+			IP=intent.getStringExtra("IP");
+			ID=intent.getStringExtra("ID");
 			factory = new ConnectionFactory();
-			factory.setUri(serverURI);
+			factory.setUri("amqp://"+username+":"+password+"@"+IP+":5672");
 			factory.setConnectionTimeout(2000);
 			factory.setRequestedHeartbeat(60);
-		}catch(Exception e){
+			Connection conn = factory.newConnection();
+			sendChannel = conn.createChannel();
+			Log.i("info","successs");
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
 		queueReceiver=new Thread(){
-			@Override
 			public void run() {
+				Channel channel=null;
+				String ConsumerTag=null;
 				try {
-					Channel channel;
 					Connection conn = factory.newConnection();
 					channel = conn.createChannel();
-					channel.queueDeclare(currentID, false, false, false, null);
+					channel.queueDeclare(ID, false, false, false, null);
 					QueueingConsumer consumer = new QueueingConsumer(channel);
-					channel.basicConsume(currentID, true, consumer);
+					ConsumerTag=channel.basicConsume(ID, true, consumer);
 					while (true){
 						try {
 							String msg=new String(consumer.nextDelivery().getBody());
@@ -78,26 +97,32 @@ public class MessagingServices extends IntentService {
 						}
 					}
 				} catch (Exception e) {
-					e.printStackTrace();
+					Log.e("ERROR", e.getMessage());
+					try {
+						channel.basicCancel(ConsumerTag);
+						channel.close();
+					}catch(Exception e1) {
+						Log.e("ERROR", e1.getMessage());
+					}
 				}
 			}
 		};
 		queueReceiver.start();
 
 		broadcastReceiver=new Thread(){
-			@Override
+			String ConsumerTag=null;
+			Channel channel;
 			public void run() {
 				try {
-					Channel channel;
+
 					Connection conn = factory.newConnection();
 					channel = conn.createChannel();
 					channel.exchangeDeclare(broadcastExchangeName, "fanout");
 					String queueName = channel.queueDeclare().getQueue();
 					channel.queueBind(queueName, broadcastExchangeName, "");
-					channel.queueDeclare(currentID, false, false, false, null);
 
 					QueueingConsumer consumer = new QueueingConsumer(channel);
-					channel.basicConsume(queueName, true, consumer);
+					ConsumerTag=channel.basicConsume(queueName, true, consumer);
 					while (true){
 						try {
 							String msg=new String(consumer.nextDelivery().getBody());
@@ -109,6 +134,12 @@ public class MessagingServices extends IntentService {
 						}
 					}
 				} catch (Exception e) {
+					try {
+						channel.basicCancel(ConsumerTag);
+						channel.close();
+					}catch(Exception e1){
+						e1.printStackTrace();
+					}
 					e.printStackTrace();
 				}
 			}
