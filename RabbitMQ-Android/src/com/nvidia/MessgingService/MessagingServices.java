@@ -91,10 +91,11 @@ public class MessagingServices extends IntentService {
 					ConsumerTag=channel.basicConsume(ID, true, consumer);
 					while (true){
 						try {
-							String msg=new String(consumer.nextDelivery().getBody());
-							Log.e("rabbitMQ", " [x] Received '" + msg + "'");
-							nBuilder.setContentText("Received:\n"+msg);
-							nBuilder.setTicker(msg);
+							com.nvidia.MessgingService.Message msg = new com.nvidia.MessgingService.Message(consumer.nextDelivery().getBody());
+							Log.i("rabbitMQ", " [x] Received '" + msg + "'");
+							nBuilder.setContentText("From " + msg.from + ":\n" + msg);
+							nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received Message From " + msg.from + ":\n" + msg));
+							nBuilder.setTicker(msg.toString());
 							notificationManager.notify(notificationID++, nBuilder.build());
 						} catch (InterruptedException e) {
 							try {
@@ -104,6 +105,8 @@ public class MessagingServices extends IntentService {
 								Log.e("ERROR","ERROR",e1);
 							}
 							return;
+						} catch (Exception e) {
+							Log.e("ERROR", "ERROR", e);
 						}
 					}
 				} catch (Exception e) {
@@ -129,10 +132,11 @@ public class MessagingServices extends IntentService {
 					ConsumerTag=channel.basicConsume(queueName, true, consumer);
 					while (true){
 						try {
-							String msg=new String(consumer.nextDelivery().getBody());
+							com.nvidia.MessgingService.Message msg = new com.nvidia.MessgingService.Message(consumer.nextDelivery().getBody());
 							Log.i("rabbitMQ", " [x] Received Broadcast'" + msg + "'");
-							nBuilder.setContentText("Received Broadcast:\n"+ msg);
-							nBuilder.setTicker(msg);
+							nBuilder.setContentText("Broadcast from " + msg.from + ":\n" + msg);
+							nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received broadcast From " + msg.from + ":\n" + msg));
+							nBuilder.setTicker(msg.toString());
 							notificationManager.notify(notificationID++, nBuilder.build());
 						} catch (InterruptedException e) {
 							try {
@@ -142,6 +146,8 @@ public class MessagingServices extends IntentService {
 								Log.e("ERROR","ERROR",e1);
 							}
 							return;
+						} catch (Exception e) {
+							Log.e("ERROR", "ERROR", e);
 						}
 					}
 				} catch (Exception e) {
@@ -156,7 +162,7 @@ public class MessagingServices extends IntentService {
 		Send, ReceivedP2PMessage, ReceivedBroadCast, sendFailed, FatalErr
 	}
 
-	class IncomingHandler extends Handler {
+	static class IncomingHandler extends Handler {
 		@Override
 		public void handleMessage(Message msg) {
 			if (msg.what==messageWhat.Send.ordinal()){
@@ -164,7 +170,6 @@ public class MessagingServices extends IntentService {
 				if (pendingMsg.to==null)
 					try {
 						sendChannel.basicPublish(broadcastExchangeName, "", null, pendingMsg.generateOneMsg());
-						new com.nvidia.MessgingService.Message(pendingMsg.generateOneMsg());
 					} catch (Exception e) {
 						Log.e("ERROR", "ERROR", e);
 					}

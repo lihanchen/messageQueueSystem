@@ -3,9 +3,7 @@ package com.nvidia.MessgingService;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-/**
- * Created by hanchenl on 6/12/15.
- */
+
 public class Message {
 	public String from;
 	public String to;
@@ -31,7 +29,7 @@ public class Message {
 			type = Type.string;
 		} else throw new Exception("Unrecognized Message");
 
-		if ((length() != Integer.parseInt(split[1])) || (!getSHA1().equals(split[2])))
+		if ((length() != Integer.parseInt(split[1])) || (!getModifiedMD5().equals(split[2])))
 			throw new Exception("Verification Failed. Broken message");
 
 		to = null;
@@ -42,7 +40,7 @@ public class Message {
 			case string:
 				return (String) content;
 			case JSON:
-				return "JSON:\n" + (String) content;
+				return "JSON:\n" + content;
 			default:
 				return "Unknown Message Type";
 		}
@@ -59,15 +57,15 @@ public class Message {
 		}
 	}
 
-	public String getSHA1() {
+	public String getModifiedMD5() { //replace all \0 to \1 for MD5
 		MessageDigest md;
 		try {
-			md = MessageDigest.getInstance("SHA-1");
+			md = MessageDigest.getInstance("MD5");
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 			return null;
 		}
-		return new String(md.digest(toString().getBytes()));
+		return (new String(md.digest(toString().getBytes()))).replace('\0', '\1');
 	}
 
 	public byte[] generateOneMsg() {
@@ -75,7 +73,7 @@ public class Message {
 		str += '\0';
 		str += length();
 		str += '\0';
-		str += getSHA1();
+		str += getModifiedMD5();
 		str += '\0';
 		str += type.toString();
 		str += '\0';
