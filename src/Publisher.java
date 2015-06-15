@@ -14,7 +14,7 @@ public class Publisher {
 	public static void main(String[] argv){
 		try {
 			ConnectionFactory factory = new ConnectionFactory();
-			factory.setUri("amqp://lhc:123@172.17.187.114:5672");
+			factory.setUri("amqp://lhc:123@127.0.0.1:5672");
 			Connection connection = factory.newConnection();
 			Channel channel = connection.createChannel();
 

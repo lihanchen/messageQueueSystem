@@ -38,7 +38,9 @@
                       android:layout_height="wrap_content"
                       android:id="@+id/editTextIP"
                       android:layout_gravity="center"
-                      android:layout_marginRight="55dp"/>
+                      android:layout_marginRight="55dp"
+                      android:textSize="12sp"
+                    />
         </GridLayout>
         <LinearLayout
                 android:orientation="horizontal"

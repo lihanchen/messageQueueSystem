@@ -17,10 +17,7 @@ import com.rabbitmq.client.QueueingConsumer;
 
 public class MessagingServices extends IntentService {
 	final public static String broadcastExchangeName = "broadcast_group";
-	/**
-	 * Creates an IntentService.  Invoked by your subclass's constructor.
-	 *
-	 */
+
 	public static NotificationManager notificationManager;
 	static int notificationID=0;
 	static Thread broadcastReceiver, queueReceiver;
@@ -76,6 +73,9 @@ public class MessagingServices extends IntentService {
 			sendChannel = conn.createChannel();
 			Log.i("info","successs");
 		} catch (Exception e) {
+			nBuilder.setContentText("Cannot connect to server!");
+			nBuilder.setTicker("Cannot connect to server!");
+			notificationManager.notify(notificationID++, nBuilder.build());
 			Log.e("ERROR","ERROR",e);
 		}
 
@@ -94,6 +94,7 @@ public class MessagingServices extends IntentService {
 							String msg=new String(consumer.nextDelivery().getBody());
 							Log.e("rabbitMQ", " [x] Received '" + msg + "'");
 							nBuilder.setContentText("Received:\n"+msg);
+							nBuilder.setTicker(msg);
 							notificationManager.notify(notificationID++, nBuilder.build());
 						} catch (InterruptedException e) {
 							try {
@@ -131,6 +132,7 @@ public class MessagingServices extends IntentService {
 							String msg=new String(consumer.nextDelivery().getBody());
 							Log.i("rabbitMQ", " [x] Received Broadcast'" + msg + "'");
 							nBuilder.setContentText("Received Broadcast:\n"+ msg);
+							nBuilder.setTicker(msg);
 							notificationManager.notify(notificationID++, nBuilder.build());
 						} catch (InterruptedException e) {
 							try {
@@ -159,16 +161,16 @@ public class MessagingServices extends IntentService {
 		public void handleMessage(Message msg) {
 			if (msg.what==messageWhat.Send.ordinal()){
 				com.nvidia.MessgingService.Message pendingMsg=(com.nvidia.MessgingService.Message)msg.obj;
-				String target;
 				if (pendingMsg.to==null)
 					try {
-						sendChannel.basicPublish(broadcastExchangeName, "", null, pendingMsg.Content.getBytes());
+						sendChannel.basicPublish(broadcastExchangeName, "", null, pendingMsg.generateOneMsg());
+						new com.nvidia.MessgingService.Message(pendingMsg.generateOneMsg());
 					} catch (Exception e) {
 						Log.e("ERROR", "ERROR", e);
 					}
 				else
 					try {
-						sendChannel.basicPublish("", pendingMsg.to, null, pendingMsg.Content.getBytes());
+						sendChannel.basicPublish("", pendingMsg.to, null, pendingMsg.generateOneMsg());
 					} catch (Exception e) {
 						Log.e("ERROR", "ERROR", e);
 					}
