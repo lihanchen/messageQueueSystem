@@ -5,6 +5,7 @@ import java.security.NoSuchAlgorithmException;
 
 
 public class Message {
+	public static final char VERSION = 1;
 	public String from;
 	public String to;
 	public Object content;
@@ -17,21 +18,28 @@ public class Message {
 	}
 
 	public Message(byte[] input) throws Exception {
-		String[] split = new String(input).split("\0");
-		from = split[0];
+		if (input[0] != VERSION) throw new Exception("Message of a different version");
 
+		int first0, second0, third0, fourth0;
+		String string = new String(input);
+		first0 = string.indexOf(0);
+		second0 = string.indexOf(0, first0 + 1);
+		third0 = string.indexOf(0, second0 + 1);
+		fourth0 = string.indexOf(0, third0 + 1);
 
-		if (split[3].equals(Type.JSON.toString())) {
-			content = split[4];
-			type = Type.JSON;
-		} else if (split[3].equals(Type.string.toString())) {
-			content = split[4];
-			type = Type.string;
+		String type = string.substring(third0 + 1, fourth0);
+		if (type.equals(Type.JSON.toString())) {
+			content = string.substring(fourth0 + 1);
+			this.type = Type.JSON;
+		} else if (type.equals(Type.string.toString())) {
+			content = string.substring(fourth0 + 1);
+			this.type = Type.string;
 		} else throw new Exception("Unrecognized Message");
 
-		if ((length() != Integer.parseInt(split[1])) || (!getModifiedMD5().equals(split[2])))
+		if ((length() != Integer.parseInt(string.substring(first0 + 1, second0))) || (!getModifiedMD5().equals(string.substring(second0 + 1, third0))))
 			throw new Exception("Verification Failed. Broken message");
 
+		from = string.substring(1, first0);
 		to = null;
 	}
 
@@ -69,7 +77,7 @@ public class Message {
 	}
 
 	public byte[] generateOneMsg() {
-		String str = from;
+		String str = "" + VERSION + from;
 		str += '\0';
 		str += length();
 		str += '\0';
