@@ -1,5 +1,7 @@
 package com.nvidia.MessgingService;
 
+import android.util.Log;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -10,15 +12,21 @@ public class Message {
 	public String to;
 	public Object content;
 	public Type type;
+
 	public Message(String from, String to, String content) {
+		this(from, to, content, Type.string);
+	}
+
+	public Message(String from, String to, Object content, Type type) {
 		this.from = from;
 		this.to = to;
 		this.content = content;
-		type = Type.string;
+		this.type = type;
 	}
 
+
 	public Message(byte[] input) throws Exception {
-		if (input[0] != VERSION) throw new Exception("Message of a different version");
+		if (input[0] != VERSION) throw new ClassCastException("Message of a different version");
 
 		int first0, second0, third0, fourth0;
 		String string = new String(input);
@@ -28,19 +36,28 @@ public class Message {
 		fourth0 = string.indexOf(0, third0 + 1);
 
 		String type = string.substring(third0 + 1, fourth0);
+		from = string.substring(1, first0);
+		to = null;
+
 		if (type.equals(Type.JSON.toString())) {
 			content = string.substring(fourth0 + 1);
 			this.type = Type.JSON;
 		} else if (type.equals(Type.string.toString())) {
 			content = string.substring(fourth0 + 1);
 			this.type = Type.string;
-		} else throw new Exception("Unrecognized Message");
+		} else if (type.equals(Type.binary.toString())) {
+			int length = input.length - fourth0 - 1;
+			content = new byte[length];
+			System.arraycopy(input, fourth0 + 1, content, 0, length);
+			this.type = Type.binary;
+			if (!getModifiedMD5().equals(string.substring(second0 + 1, third0)))
+				throw new ClassCastException("Verification Failed. Broken message");
+			return;
+		} else throw new ClassCastException("Unrecognized Message");
 
 		if ((length() != Integer.parseInt(string.substring(first0 + 1, second0))) || (!getModifiedMD5().equals(string.substring(second0 + 1, third0))))
-			throw new Exception("Verification Failed. Broken message");
+			throw new ClassCastException("Verification Failed. Broken message");
 
-		from = string.substring(1, first0);
-		to = null;
 	}
 
 	public String toString() {
@@ -49,6 +66,8 @@ public class Message {
 				return (String) content;
 			case JSON:
 				return "JSON:\n" + content;
+			case binary:
+				return new String((byte[]) content);
 			default:
 				return "Unknown Message Type";
 		}
@@ -60,6 +79,8 @@ public class Message {
 				return ((String) content).length();
 			case JSON:
 				return ((String) content).length();
+			case binary:
+				return ((byte[]) content).length;
 			default:
 				return -1;
 		}
@@ -73,7 +94,11 @@ public class Message {
 			e.printStackTrace();
 			return null;
 		}
-		return (new String(md.digest(toString().getBytes()))).replace('\0', '\1');
+		Log.e("MD5", (new String(md.digest((byte[]) content))).replace('\0', '\1'));
+		if (type == Type.binary)
+			return (new String(md.digest((byte[]) content))).replace('\0', '\1');
+		else
+			return (new String(md.digest(toString().getBytes()))).replace('\0', '\1');
 	}
 
 	public byte[] generateOneMsg() {

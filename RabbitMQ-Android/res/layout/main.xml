@@ -4,7 +4,9 @@
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
             android:paddingTop="30dp"
-            android:padding="20dp">
+            android:padding="20dp"
+            android:fillViewport="false"
+            android:id="@+id/scrollView">
     <LinearLayout
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
@@ -120,6 +122,13 @@
                 android:id="@+id/buttonSendGroup"
                 android:minWidth="10dp"
                 android:layout_weight="1.13"/>
+        <Button
+                style="?android:attr/buttonStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Broadcast Picture"
+                android:id="@+id/buttonBroadcastPic"
+                android:layout_gravity="center_horizontal"/>
     </LinearLayout>
 </ScrollView>
 

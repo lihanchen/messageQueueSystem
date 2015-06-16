@@ -14,14 +14,19 @@ import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 
+import java.io.File;
+import java.io.FileInputStream;
+
 public class MyActivity extends Activity {
 	/**
 	 * Called when the activity is first created.
 	 */
 
+	public final static int MAX_FILE_SIZE = 10 * 1024 * 1024; //10MB
+
+
 	public static Activity activity;
 
-	//public MyHandler handler=new MyHandler();
 	Messenger messenger=null;
 	ServiceConnection connection=new ServiceConnection() {
 		public void onServiceConnected(ComponentName name, IBinder service) {
@@ -57,6 +62,19 @@ public class MyActivity extends Activity {
 				intent.putExtra("ID", editTextID.getText().toString());
 				intent.putExtra("IP", editTextIP.getText().toString());
 				startService(intent);
+			}
+		});
+
+		(findViewById(R.id.buttonStopServer)).setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				if (messenger == null) return;
+				Intent intent = new Intent(MyActivity.this, MessagingServices.class);
+				intent.putExtra("ID", editTextID.getText().toString());
+				intent.putExtra("IP", editTextIP.getText().toString());
+				MyActivity.this.unbindService(connection);
+				messenger = null;
+				stopService(intent);
 			}
 		});
 
@@ -101,6 +119,33 @@ public class MyActivity extends Activity {
 				}
 			}
 		});
+
+		(findViewById(R.id.buttonBroadcastPic)).setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+				try {
+					File file = new File("/sdcard/SantaClaraCampus2014.pdf");
+					if (file.length() > MAX_FILE_SIZE) {
+						showMessageBox("file too large");
+						return;
+					}
+
+					FileInputStream fis = new FileInputStream(file);
+					byte buffer[] = new byte[(int) file.length()];
+					fis.read(buffer);
+					fis.close();
+
+					com.nvidia.MessgingService.Message msg
+							= new com.nvidia.MessgingService.Message(editTextID.getText().toString(), null, buffer, com.nvidia.MessgingService.Message.Type.binary);
+
+					messenger.send(Message.obtain(null, MessagingServices.messageWhat.Send.ordinal(), msg));
+
+				} catch (Exception e) {
+					Log.e("ERROR", "ERROR", e);
+				}
+			}
+		});
+
+
 	}
 
 	public void showMessageBox(String msg){
@@ -108,33 +153,3 @@ public class MyActivity extends Activity {
 	}
 
 }
-
-//class MyHandler extends Handler {
-//	@Override
-//	public void handleMessage(Message msg) {
-//
-//		if (msg.what==MyActivity.messageWhat.ReceivedBroadCast.ordinal()){
-//			showMessageBox("Received Broadcast:\n"+msg.obj);
-//		}
-//
-//		if (msg.what==MyActivity.messageWhat.ReceivedP2PMessage.ordinal()){
-//			showMessageBox("Received Message:\n"+msg.obj);
-//		}
-//
-//		if (msg.what==MyActivity.messageWhat.FatalErr.ordinal()){
-//			showMessageBox("Server Error");
-//		}
-//
-//		if (msg.what==MyActivity.messageWhat.sendFailed.ordinal()){
-//			showMessageBox("Send Failed");
-//		}
-//	}
-//
-//	public void showMessageBox(String msg){
-//		new AlertDialog.Builder(MyActivity.activity)
-//				.setPositiveButton("OK", null)
-//				.setMessage(msg)
-//				.setTitle("Message")
-//				.create().show();
-//	}
-//}

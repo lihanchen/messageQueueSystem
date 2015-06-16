@@ -14,6 +14,9 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.QueueingConsumer;
 
+import java.io.File;
+import java.io.FileOutputStream;
+
 
 public class MessagingServices extends IntentService {
 	final public static String broadcastExchangeName = "broadcast_group";
@@ -40,7 +43,7 @@ public class MessagingServices extends IntentService {
 		notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 		nBuilder = new NotificationCompat.Builder(this);
 		nBuilder.setContentTitle("NVIDIA Messaging Service");
-		nBuilder.setSmallIcon(R.drawable.icon);
+		nBuilder.setSmallIcon(R.mipmap.notification_icon);
 		nBuilder.setVibrate(new long[]{500, 500});
 
 	}
@@ -105,7 +108,7 @@ public class MessagingServices extends IntentService {
 								Log.e("ERROR","ERROR",e1);
 							}
 							return;
-						} catch (Exception e) {
+						} catch (ClassCastException e) {
 							Log.e("ERROR", "ERROR", e);
 						}
 					}
@@ -133,6 +136,11 @@ public class MessagingServices extends IntentService {
 					while (true){
 						try {
 							com.nvidia.MessgingService.Message msg = new com.nvidia.MessgingService.Message(consumer.nextDelivery().getBody());
+							if (msg.from.equals(ID)) return;
+							if (msg.type == com.nvidia.MessgingService.Message.Type.binary) {
+								processBinary(msg);
+								return;
+							}
 							Log.i("rabbitMQ", " [x] Received Broadcast'" + msg + "'");
 							nBuilder.setContentText("Broadcast from " + msg.from + ":\n" + msg);
 							nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received broadcast From " + msg.from + ":\n" + msg));
@@ -146,7 +154,7 @@ public class MessagingServices extends IntentService {
 								Log.e("ERROR","ERROR",e1);
 							}
 							return;
-						} catch (Exception e) {
+						} catch (ClassCastException e) {
 							Log.e("ERROR", "ERROR", e);
 						}
 					}
@@ -154,8 +162,24 @@ public class MessagingServices extends IntentService {
 					Log.e("ERROR","ERROR",e);
 				}
 			}
+
 		};
 		broadcastReceiver.start();
+	}
+
+	public void processBinary(com.nvidia.MessgingService.Message msg) {
+		try {
+			File file = new File("/sdcard/qwe.txt");
+			FileOutputStream fos = new FileOutputStream(file);
+			fos.write(((String) msg.content).getBytes());
+			fos.close();
+			nBuilder.setContentText("Received broadcast binary file from " + msg.from);
+			nBuilder.setTicker("Received broadcast binary file");
+			notificationManager.notify(notificationID++, nBuilder.build());
+		} catch (Exception e) {
+			Log.e("ERROR", "ERROR", e);
+		}
+
 	}
 
 	public enum messageWhat {
