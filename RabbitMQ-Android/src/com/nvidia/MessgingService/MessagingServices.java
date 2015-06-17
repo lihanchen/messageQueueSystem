@@ -95,6 +95,10 @@ public class MessagingServices extends IntentService {
 					while (true){
 						try {
 							com.nvidia.MessgingService.Message msg = new com.nvidia.MessgingService.Message(consumer.nextDelivery().getBody());
+							if (msg.type == com.nvidia.MessgingService.Message.Type.binary) {
+								processBinary(msg);
+								continue;
+							}
 							Log.i("rabbitMQ", " [x] Received '" + msg + "'");
 							nBuilder.setContentText("From " + msg.from + ":\n" + msg);
 							nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received Message From " + msg.from + ":\n" + msg));
@@ -139,7 +143,7 @@ public class MessagingServices extends IntentService {
 							if (msg.from.equals(ID)) return;
 							if (msg.type == com.nvidia.MessgingService.Message.Type.binary) {
 								processBinary(msg);
-								return;
+								continue;
 							}
 							Log.i("rabbitMQ", " [x] Received Broadcast'" + msg + "'");
 							nBuilder.setContentText("Broadcast from " + msg.from + ":\n" + msg);
@@ -169,12 +173,12 @@ public class MessagingServices extends IntentService {
 
 	public void processBinary(com.nvidia.MessgingService.Message msg) {
 		try {
-			File file = new File("/sdcard/vim.jpg");
+			File file = new File("/sdcard/vim2.jpg");
 			FileOutputStream fos = new FileOutputStream(file);
 			fos.write((byte[]) msg.content);
 			fos.close();
-			nBuilder.setContentText("Received broadcast binary file from " + msg.from);
-			nBuilder.setTicker("Received broadcast binary file");
+			nBuilder.setContentText("Received binary file from " + msg.from);
+			nBuilder.setTicker("Received binary file");
 			notificationManager.notify(notificationID++, nBuilder.build());
 		} catch (Exception e) {
 			Log.e("ERROR", "ERROR", e);
