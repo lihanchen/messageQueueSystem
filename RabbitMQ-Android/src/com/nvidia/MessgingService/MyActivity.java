@@ -122,26 +122,30 @@ public class MyActivity extends Activity {
 
 		(findViewById(R.id.buttonBroadcastPic)).setOnClickListener(new View.OnClickListener() {
 			public void onClick(View v) {
-				try {
-					File file = new File("/sdcard/vim.png");
-					if (file.length() > MAX_FILE_SIZE) {
-						showMessageBox("file too large");
-						return;
+				new Thread() {
+					public void run() {
+						try {
+							File file = new File("/sdcard/vim.png");
+							if (file.length() > MAX_FILE_SIZE) {
+								showMessageBox("file too large");
+								return;
+							}
+
+							FileInputStream fis = new FileInputStream(file);
+							byte buffer[] = new byte[(int) file.length()];
+							fis.read(buffer);
+							fis.close();
+
+							com.nvidia.MessgingService.Message msg
+									= new com.nvidia.MessgingService.Message(editTextID.getText().toString(), null, buffer, com.nvidia.MessgingService.Message.Type.binary);
+
+							messenger.send(Message.obtain(null, MessagingServices.messageWhat.Send.ordinal(), msg));
+
+						} catch (Exception e) {
+							Log.e("ERROR", "ERROR", e);
+						}
 					}
-
-					FileInputStream fis = new FileInputStream(file);
-					byte buffer[] = new byte[(int) file.length()];
-					fis.read(buffer);
-					fis.close();
-
-					com.nvidia.MessgingService.Message msg
-							= new com.nvidia.MessgingService.Message(editTextID.getText().toString(), null, buffer, com.nvidia.MessgingService.Message.Type.binary);
-
-					messenger.send(Message.obtain(null, MessagingServices.messageWhat.Send.ordinal(), msg));
-
-				} catch (Exception e) {
-					Log.e("ERROR", "ERROR", e);
-				}
+				}.start();
 			}
 		});
 

@@ -172,18 +172,21 @@ public class MessagingServices extends IntentService {
 	}
 
 	public void processBinary(com.nvidia.MessgingService.Message msg) {
-		try {
-			File file = new File("/sdcard/vim2.jpg");
-			FileOutputStream fos = new FileOutputStream(file);
-			fos.write((byte[]) msg.content);
-			fos.close();
-			nBuilder.setContentText("Received binary file from " + msg.from);
-			nBuilder.setTicker("Received binary file");
-			notificationManager.notify(notificationID++, nBuilder.build());
-		} catch (Exception e) {
-			Log.e("ERROR", "ERROR", e);
-		}
-
+		new Thread() {
+			public void run() {
+				try {
+					File file = new File("/sdcard/vim2.jpg");
+					FileOutputStream fos = new FileOutputStream(file);
+					fos.write((byte[]) msg.content);
+					fos.close();
+					nBuilder.setContentText("Received binary file from " + msg.from);
+					nBuilder.setTicker("Received binary file");
+					notificationManager.notify(notificationID++, nBuilder.build());
+				} catch (Exception e) {
+					Log.e("ERROR", "ERROR", e);
+				}
+			}
+		}.start();
 	}
 
 	public enum messageWhat {
