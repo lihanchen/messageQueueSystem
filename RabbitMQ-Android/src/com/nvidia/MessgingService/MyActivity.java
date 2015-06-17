@@ -133,7 +133,10 @@ public class MyActivity extends Activity {
 
 							FileInputStream fis = new FileInputStream(file);
 							byte buffer[] = new byte[(int) file.length()];
-							fis.read(buffer);
+							if (fis.read(buffer) == -1) {
+								showMessageBox("Error reading the file");
+								return;
+							}
 							fis.close();
 
 							com.nvidia.MessgingService.Message msg
@@ -150,6 +153,12 @@ public class MyActivity extends Activity {
 		});
 
 
+	}
+
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();
+		unbindService(connection);
 	}
 
 	public void showMessageBox(String msg){
