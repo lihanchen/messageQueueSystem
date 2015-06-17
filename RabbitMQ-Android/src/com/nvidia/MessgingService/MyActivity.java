@@ -123,7 +123,7 @@ public class MyActivity extends Activity {
 		(findViewById(R.id.buttonBroadcastPic)).setOnClickListener(new View.OnClickListener() {
 			public void onClick(View v) {
 				try {
-					File file = new File("/sdcard/SantaClaraCampus2014.pdf");
+					File file = new File("/sdcard/vim.png");
 					if (file.length() > MAX_FILE_SIZE) {
 						showMessageBox("file too large");
 						return;

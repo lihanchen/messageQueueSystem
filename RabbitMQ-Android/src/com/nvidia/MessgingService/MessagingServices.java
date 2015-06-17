@@ -169,9 +169,9 @@ public class MessagingServices extends IntentService {
 
 	public void processBinary(com.nvidia.MessgingService.Message msg) {
 		try {
-			File file = new File("/sdcard/qwe.txt");
+			File file = new File("/sdcard/vim.jpg");
 			FileOutputStream fos = new FileOutputStream(file);
-			fos.write(((String) msg.content).getBytes());
+			fos.write((byte[]) msg.content);
 			fos.close();
 			nBuilder.setContentText("Received broadcast binary file from " + msg.from);
 			nBuilder.setTicker("Received broadcast binary file");
