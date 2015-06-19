@@ -11,6 +11,7 @@ public class Message {
 	public String to;
 	public Object content;
 	public Type type;
+	public boolean broadcast;
 
 	public Message(String from, String to, String content) {
 		this(from, to, content, Type.string);
@@ -22,7 +23,6 @@ public class Message {
 		this.content = content;
 		this.type = type;
 	}
-
 
 	public Message(byte[] input) throws Exception {
 		if (input[0] != VERSION) throw new ClassCastException("Message of a different version");
@@ -148,4 +148,5 @@ public class Message {
 	public enum Type {
 		JSON, binary, string
 	}
+
 }
