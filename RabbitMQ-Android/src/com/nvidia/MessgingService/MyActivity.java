@@ -46,7 +46,8 @@ public class MyActivity extends Activity {
 		EditText editTextID = (EditText) findViewById(R.id.editTextID);
 		EditText editTextIP = (EditText) findViewById(R.id.editTextIP);
 		editTextID.setText(Integer.toString((int) (Math.random() * 100)));
-		editTextIP.setText("dhcp-172-17-185-197.nvidia.com");
+		//editTextID.setText("82");
+		editTextIP.setText("dhcp-172-17-187-54.nvidia.com");
 		alertBuilder=new AlertDialog.Builder(MyActivity.this).setPositiveButton("OK", null).setTitle("Message");
 
 		Intent intent = new Intent(MyActivity.this, MessagingServices.class);

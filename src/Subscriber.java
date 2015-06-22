@@ -8,12 +8,26 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.QueueingConsumer;
 
 public class Subscriber {
-	private static final String EXCHANGE_NAME = "broadcast_group";
-
 	public static void main(String[] argv){
+		for (int i = 0; i < 1; i++) {
+			new SubscriberThread(i).start();
+		}
+	}
+}
+
+class SubscriberThread extends Thread {
+	private static final String EXCHANGE_NAME = "broadcast_group";
+	int index;
+
+	public SubscriberThread(int index) {
+		super();
+		this.index = index;
+	}
+
+	public void run() {
 		try {
 			ConnectionFactory factory = new ConnectionFactory();
-			factory.setUri("amqp://lhc:123@172.17.187.114:5672");
+			factory.setUri("amqp://lhc:123@localhost:5672");
 			Connection connection = factory.newConnection();
 			Channel channel = connection.createChannel();
 
@@ -28,9 +42,9 @@ public class Subscriber {
 				QueueingConsumer.Delivery delivery = consumer.nextDelivery();
 				String message = new String(delivery.getBody());
 
-				System.out.println(" [x] Received '" + message + "'");
+				System.out.println(" [x] Received from " + index + "   '" + message + "'");
 			}
-		}catch(Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
