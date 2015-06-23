@@ -34,6 +34,7 @@ public class MessagingServices extends IntentService {
 	static String ID;
 	static NotificationCompat.Builder nBuilder;
 	static Thread broadcastReceiver, queueReceiver;
+	static Connection conn;
 	private static int connectState = -1;  //-1 disconnected      0 connecting        1 connected
 
 	public MessagingServices() {
@@ -81,8 +82,8 @@ public class MessagingServices extends IntentService {
 						factory.setUri("amqp://" + username + ":" + password + "@" + IP + ":5672");
 						factory.setConnectionTimeout(2000);
 						factory.setRequestedHeartbeat(5);
-						Connection conn = factory.newConnection();
-						sendChannel = conn.createChannel();
+						conn = factory.newConnection();
+						sendChannel = conn.createChannel(101);
 						Log.i("info", "success");
 						connectState = 1;
 						startReceiverThreads();
@@ -107,11 +108,11 @@ public class MessagingServices extends IntentService {
 				Channel channel;
 				String ConsumerTag;
 				try {
-					Connection conn = factory.newConnection();
-					channel = conn.createChannel();
+					channel = conn.createChannel(102);
 					channel.queueDeclare(ID, false, false, false, null);
 					QueueingConsumer consumer = new QueueingConsumer(channel);
 					ConsumerTag = channel.basicConsume(ID, true, consumer);
+					channel.basicRecover();
 					Log.i("info", "queueReceiver Running");
 					while (true) {
 						try {
@@ -152,14 +153,14 @@ public class MessagingServices extends IntentService {
 
 			public void run() {
 				try {
-					Connection conn = factory.newConnection();
-					channel = conn.createChannel();
+					channel = conn.createChannel(103);
 					channel.exchangeDeclare(broadcastExchangeName, "fanout");
 					String queueName = channel.queueDeclare().getQueue();
 					channel.queueBind(queueName, broadcastExchangeName, "");
 
 					QueueingConsumer consumer = new QueueingConsumer(channel);
 					ConsumerTag = channel.basicConsume(queueName, true, consumer);
+					channel.basicRecover();
 					Log.i("info", "BroadcastReceiver Running");
 					while (true) {
 						try {
