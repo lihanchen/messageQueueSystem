@@ -11,10 +11,8 @@ import android.os.Message;
 import android.os.Messenger;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.QueueingConsumer;
+import com.rabbitmq.client.*;
+import com.rabbitmq.client.impl.recovery.AutorecoveringConnection;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -22,20 +20,20 @@ import java.io.FileOutputStream;
 
 public class MessagingServices extends IntentService {
 	final public static String broadcastExchangeName = "broadcast_group";
-	final public static int RECONNECT_WAITING_TIME = 3000;
+	final public static int RECONNECT_WAITING_TIME = 60000;
 	final public static String username = "lhc";
 	final public static String password = "123";
 	final static Messenger messenger = new Messenger(new IncomingHandler());
 	public static NotificationManager notificationManager;
 	static int notificationID=0;
 	static ConnectionFactory factory;
-	static Channel sendChannel = null;
+	static Channel sendChannel = null, queueReceiverChannel, BroadcastReceiverChannel;
+	static String queueReceiverConsumerTag;
 	static String IP;
 	static String ID;
 	static NotificationCompat.Builder nBuilder;
 	static Thread broadcastReceiver, queueReceiver;
-	static Connection conn;
-	private static int connectState = -1;  //-1 disconnected      0 connecting        1 connected
+	static AutorecoveringConnection conn;
 
 	public MessagingServices() {
 		super("NVIDIA Messaging Services");
@@ -59,78 +57,40 @@ public class MessagingServices extends IntentService {
 		}.start();
 	}
 
-	private static void Connect() {
-		if (connectState != -1) return;
-		new Thread() {
-			public void run() {
-				while (true) {
-					if (connectState != -1) return;
-					Log.w("Connect", "Start Connection");
-					connectState = 0;
-					if (sendChannel != null) {
-						try {
-							queueReceiver.interrupt();
-							broadcastReceiver.interrupt();
-							sendChannel.close();
-						} catch (Exception e) {
-							Log.e("ERROR", "ERROR", e);
-						}
-					}
-
-					try {
-						factory = new ConnectionFactory();
-						factory.setUri("amqp://" + username + ":" + password + "@" + IP + ":5672");
-						factory.setConnectionTimeout(2000);
-						factory.setRequestedHeartbeat(5);
-						conn = factory.newConnection();
-						sendChannel = conn.createChannel(101);
-						Log.i("info", "success");
-						connectState = 1;
-						startReceiverThreads();
-						return;
-					} catch (Exception e) {
-						connectState = -1;
-						Log.e("ERROR", "ERROR", e);
-						Log.w("Connect", "Connecting Failed");
-						try {
-							Thread.sleep(RECONNECT_WAITING_TIME);
-						} catch (InterruptedException e1) {
-						}
-					}
-				}
-			}
-		}.start();
-	}
-
 	public static void startReceiverThreads() {
 		queueReceiver = new Thread() {
 			public void run() {
-				Channel channel;
-				String ConsumerTag;
 				try {
-					channel = conn.createChannel(102);
-					channel.queueDeclare(ID, false, false, false, null);
-					QueueingConsumer consumer = new QueueingConsumer(channel);
-					ConsumerTag = channel.basicConsume(ID, true, consumer);
-					channel.basicRecover();
+					try {
+						queueReceiverChannel.basicCancel(queueReceiverConsumerTag);
+					} catch (Exception e) {
+					}
+					try {
+						queueReceiverChannel.close();
+					} catch (Exception e) {
+					}
+					queueReceiverChannel = conn.createChannel();
+					queueReceiverChannel.queueDeclare(MessagingServices.ID, false, false, false, null);
+					QueueingConsumer consumer = new QueueingConsumer(queueReceiverChannel);
+					queueReceiverConsumerTag = queueReceiverChannel.basicConsume(MessagingServices.ID, false, consumer);
+					queueReceiverChannel.basicRecover();
 					Log.i("info", "queueReceiver Running");
 					while (true) {
 						try {
-							com.nvidia.MessgingService.Message msg = new com.nvidia.MessgingService.Message(consumer.nextDelivery().getBody());
-							if (msg.type == com.nvidia.MessgingService.Message.Type.binary) {
-								processBinary(msg);
-								continue;
-							}
+							QueueingConsumer.Delivery delivery = consumer.nextDelivery();
+							Log.i("Tag", "" + delivery.getEnvelope().getDeliveryTag());
+							com.nvidia.MessgingService.Message msg = new com.nvidia.MessgingService.Message(delivery.getBody());
 							Log.i("rabbitMQ", " [x] Received '" + msg + "'");
-							nBuilder.setContentText("From " + msg.from + ":\n" + msg);
-							nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received Message From " + msg.from + ":\n" + msg));
-							nBuilder.setTicker(msg.toString());
-							notificationManager.notify(notificationID++, nBuilder.build());
+							MessagingServices.nBuilder.setContentText("From " + msg.from + ":\n" + msg);
+							MessagingServices.nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received Message From " + msg.from + ":\n" + msg));
+							MessagingServices.nBuilder.setTicker(msg.toString());
+							MessagingServices.notificationManager.notify(MessagingServices.notificationID++, MessagingServices.nBuilder.build());
+							queueReceiverChannel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
 						} catch (InterruptedException e) {
 							Log.i("info", "queueReceiver Killed");
 							try {
-								channel.basicCancel(ConsumerTag);
-								channel.close();
+								queueReceiverChannel.basicCancel(queueReceiverConsumerTag);
+								queueReceiverChannel.close();
 							} catch (Exception e1) {
 								Log.e("ERROR", "ERROR", e1);
 							}
@@ -141,8 +101,6 @@ public class MessagingServices extends IntentService {
 					}
 				} catch (Exception e) {
 					Log.e("ERROR", "ERROR", e);
-					connectState = -1;
-					Connect();
 				}
 			}
 		};
@@ -152,8 +110,9 @@ public class MessagingServices extends IntentService {
 			Channel channel;
 
 			public void run() {
+				if ("".length() == 0) return;
 				try {
-					channel = conn.createChannel(103);
+					channel = conn.createChannel();
 					channel.exchangeDeclare(broadcastExchangeName, "fanout");
 					String queueName = channel.queueDeclare().getQueue();
 					channel.queueBind(queueName, broadcastExchangeName, "");
@@ -190,14 +149,14 @@ public class MessagingServices extends IntentService {
 					}
 				} catch (Exception e) {
 					Log.e("ERROR", "ERROR", e);
-					connectState = -1;
-					Connect();
+					//connectState = -1;
+					//Connect();
 				}
 			}
 		};
 
 		queueReceiver.start();
-		broadcastReceiver.start();
+		//broadcastReceiver.start();
 	}
 
 	@Override
@@ -219,7 +178,53 @@ public class MessagingServices extends IntentService {
 	protected void onHandleIntent(Intent intent) {
 		IP = intent.getStringExtra("IP");
 		ID = intent.getStringExtra("ID");
-		Connect();
+		try {
+			conn.close();
+		} catch (Exception e) {
+		}
+		while (true) {
+			Log.w("Connect", "Start Connection");
+			if (sendChannel != null) {
+				try {
+					queueReceiver.interrupt();
+					broadcastReceiver.interrupt();
+					sendChannel.close();
+				} catch (Exception e) {
+					Log.e("ERROR", "ERROR", e);
+				}
+			}
+
+			try {
+				factory = new ConnectionFactory();
+				factory.setUri("amqp://" + username + ":" + password + "@" + IP + ":5672");
+				factory.setConnectionTimeout(5000);
+				factory.setRequestedHeartbeat(600);
+				factory.setAutomaticRecoveryEnabled(true);
+				factory.setTopologyRecoveryEnabled(true);
+				factory.setNetworkRecoveryInterval(5000);
+				conn = (AutorecoveringConnection) factory.newConnection();
+				conn.addRecoveryListener(new RecoveryListener() {
+					@Override
+					public void handleRecovery(Recoverable recoverable) {
+						Log.i("Recover", "Recovered");
+						startReceiverThreads();
+					}
+				});
+				sendChannel = conn.createChannel();
+				Log.i("info", "success");
+				startReceiverThreads();
+				return;
+			} catch (Exception e) {
+				Log.e("ERROR", "ERROR", e);
+				Log.w("Connect", "Connecting Failed");
+				try {
+					Thread.sleep(RECONNECT_WAITING_TIME);
+				} catch (InterruptedException e1) {
+				}
+			}
+
+		}
+
 	}
 
 	public enum messageWhat {
@@ -257,3 +262,12 @@ public class MessagingServices extends IntentService {
 
 }
 
+class RThread extends Thread {
+	public Channel channel;
+	public String ConsumerTag;
+	public QueueingConsumer consumer;
+
+	public void run() {
+
+	}
+}
