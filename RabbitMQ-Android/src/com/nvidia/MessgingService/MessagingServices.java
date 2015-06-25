@@ -66,6 +66,7 @@ public class MessagingServices extends IntentService {
 					} catch (Exception e) {
 					}
 					try {
+						queueReceiverChannel.basicRecover();
 						queueReceiverChannel.close();
 					} catch (Exception e) {
 					}
@@ -73,12 +74,10 @@ public class MessagingServices extends IntentService {
 					queueReceiverChannel.queueDeclare(MessagingServices.ID, false, false, false, null);
 					QueueingConsumer consumer = new QueueingConsumer(queueReceiverChannel);
 					queueReceiverConsumerTag = queueReceiverChannel.basicConsume(MessagingServices.ID, false, consumer);
-					queueReceiverChannel.basicRecover();
 					Log.i("info", "queueReceiver Running");
 					while (true) {
 						try {
 							QueueingConsumer.Delivery delivery = consumer.nextDelivery();
-							Log.i("Tag", "" + delivery.getEnvelope().getDeliveryTag());
 							com.nvidia.MessgingService.Message msg = new com.nvidia.MessgingService.Message(delivery.getBody());
 							Log.i("rabbitMQ", " [x] Received '" + msg + "'");
 							MessagingServices.nBuilder.setContentText("From " + msg.from + ":\n" + msg);
@@ -110,7 +109,6 @@ public class MessagingServices extends IntentService {
 			Channel channel;
 
 			public void run() {
-				if ("".length() == 0) return;
 				try {
 					channel = conn.createChannel();
 					channel.exchangeDeclare(broadcastExchangeName, "fanout");
@@ -119,7 +117,6 @@ public class MessagingServices extends IntentService {
 
 					QueueingConsumer consumer = new QueueingConsumer(channel);
 					ConsumerTag = channel.basicConsume(queueName, true, consumer);
-					channel.basicRecover();
 					Log.i("info", "BroadcastReceiver Running");
 					while (true) {
 						try {
@@ -149,14 +146,12 @@ public class MessagingServices extends IntentService {
 					}
 				} catch (Exception e) {
 					Log.e("ERROR", "ERROR", e);
-					//connectState = -1;
-					//Connect();
 				}
 			}
 		};
 
 		queueReceiver.start();
-		//broadcastReceiver.start();
+		broadcastReceiver.start();
 	}
 
 	@Override
@@ -166,7 +161,7 @@ public class MessagingServices extends IntentService {
 		nBuilder = new NotificationCompat.Builder(this);
 		nBuilder.setContentTitle("NVIDIA Messaging Service");
 		nBuilder.setSmallIcon(R.mipmap.notification_icon);
-		//nBuilder.setVibrate(new long[]{500, 500});
+		nBuilder.setVibrate(new long[]{500, 100});
 	}
 
 	@Override
@@ -222,9 +217,21 @@ public class MessagingServices extends IntentService {
 				} catch (InterruptedException e1) {
 				}
 			}
-
 		}
+	}
 
+	@Override
+	public void onDestroy() {
+		Log.e("destroy", "onDestroy");
+		queueReceiver.interrupt();
+		broadcastReceiver.interrupt();
+		sendChannel = null;
+		try {
+			conn.close();
+		} catch (Exception e) {
+			Log.e("ERROR", "ERROR", e);
+		}
+		super.onDestroy();
 	}
 
 	public enum messageWhat {
@@ -260,14 +267,4 @@ public class MessagingServices extends IntentService {
 
 	}
 
-}
-
-class RThread extends Thread {
-	public Channel channel;
-	public String ConsumerTag;
-	public QueueingConsumer consumer;
-
-	public void run() {
-
-	}
 }
