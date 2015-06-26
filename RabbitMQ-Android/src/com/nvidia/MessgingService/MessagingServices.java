@@ -27,7 +27,7 @@ public class MessagingServices extends IntentService {
 	public static NotificationManager notificationManager;
 	static int notificationID=0;
 	static ConnectionFactory factory;
-	static Channel sendChannel = null, queueReceiverChannel, BroadcastReceiverChannel;
+	static Channel sendChannel = null, queueReceiverChannel;
 	static String queueReceiverConsumerTag;
 	static String IP;
 	static String ID;
@@ -47,7 +47,7 @@ public class MessagingServices extends IntentService {
 					FileOutputStream fos = new FileOutputStream(file);
 					fos.write((byte[]) msg.content);
 					fos.close();
-					nBuilder.setContentText("Received binary file from " + msg.from);
+					nBuilder.setContentText("Received binary file from " + msg.source);
 					nBuilder.setTicker("Received binary file");
 					notificationManager.notify(notificationID++, nBuilder.build());
 				} catch (Exception e) {
@@ -64,11 +64,13 @@ public class MessagingServices extends IntentService {
 					try {
 						queueReceiverChannel.basicCancel(queueReceiverConsumerTag);
 					} catch (Exception e) {
+						Log.i("ERROR", "ERROR", e);
 					}
 					try {
 						queueReceiverChannel.basicRecover();
 						queueReceiverChannel.close();
 					} catch (Exception e) {
+						Log.i("ERROR", "ERROR", e);
 					}
 					queueReceiverChannel = conn.createChannel();
 					queueReceiverChannel.queueDeclare(MessagingServices.ID, false, false, false, null);
@@ -80,8 +82,8 @@ public class MessagingServices extends IntentService {
 							QueueingConsumer.Delivery delivery = consumer.nextDelivery();
 							com.nvidia.MessgingService.Message msg = new com.nvidia.MessgingService.Message(delivery.getBody());
 							Log.i("rabbitMQ", " [x] Received '" + msg + "'");
-							MessagingServices.nBuilder.setContentText("From " + msg.from + ":\n" + msg);
-							MessagingServices.nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received Message From " + msg.from + ":\n" + msg));
+							MessagingServices.nBuilder.setContentText("From " + msg.source + ":\n" + msg);
+							MessagingServices.nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received Message From " + msg.source + ":\n" + msg));
 							MessagingServices.nBuilder.setTicker(msg.toString());
 							MessagingServices.notificationManager.notify(MessagingServices.notificationID++, MessagingServices.nBuilder.build());
 							queueReceiverChannel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
@@ -121,14 +123,14 @@ public class MessagingServices extends IntentService {
 					while (true) {
 						try {
 							com.nvidia.MessgingService.Message msg = new com.nvidia.MessgingService.Message(consumer.nextDelivery().getBody());
-							if (msg.from.equals(ID)) continue;
+							if (msg.source.equals(ID)) continue;
 							if (msg.type == com.nvidia.MessgingService.Message.Type.binary) {
 								processBinary(msg);
 								continue;
 							}
 							Log.i("rabbitMQ", " [x] Received Broadcast'" + msg + "'");
-							nBuilder.setContentText("Broadcast from " + msg.from + ":\n" + msg);
-							nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received broadcast From " + msg.from + ":\n" + msg));
+							nBuilder.setContentText("Broadcast from " + msg.source + ":\n" + msg);
+							nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received broadcast From " + msg.source + ":\n" + msg));
 							nBuilder.setTicker(msg.toString());
 							notificationManager.notify(notificationID++, nBuilder.build());
 						} catch (InterruptedException e) {
@@ -171,11 +173,18 @@ public class MessagingServices extends IntentService {
 
 	@Override
 	protected void onHandleIntent(Intent intent) {
-		IP = intent.getStringExtra("IP");
-		ID = intent.getStringExtra("ID");
+		Log.e("", "Start Services");
+		if (intent.hasExtra("IP")) {
+			IP = intent.getStringExtra("IP");
+			ID = intent.getStringExtra("ID");
+		} else {
+			IP = "dhcp-172-17-187-54.nvidia.com";
+			ID = "qwerty";
+		}
 		try {
 			conn.close();
 		} catch (Exception e) {
+			Log.i("ERROR", "ERROR", e);
 		}
 		while (true) {
 			Log.w("Connect", "Start Connection");
@@ -215,27 +224,14 @@ public class MessagingServices extends IntentService {
 				try {
 					Thread.sleep(RECONNECT_WAITING_TIME);
 				} catch (InterruptedException e1) {
+					Log.i("ERROR", "ERROR", e1);
 				}
 			}
 		}
 	}
 
-	@Override
-	public void onDestroy() {
-		Log.e("destroy", "onDestroy");
-		queueReceiver.interrupt();
-		broadcastReceiver.interrupt();
-		sendChannel = null;
-		try {
-			conn.close();
-		} catch (Exception e) {
-			Log.e("ERROR", "ERROR", e);
-		}
-		super.onDestroy();
-	}
-
 	public enum messageWhat {
-		Send, ReceivedP2PMessage, ReceivedBroadCast, sendFailed, FatalErr
+		Send
 	}
 
 	static class IncomingHandler extends Handler {
@@ -243,7 +239,7 @@ public class MessagingServices extends IntentService {
 		public void handleMessage(Message msg) {
 			if (msg.what==messageWhat.Send.ordinal()){
 				com.nvidia.MessgingService.Message pendingMsg=(com.nvidia.MessgingService.Message)msg.obj;
-				if (pendingMsg.to==null)
+				if (pendingMsg.destination == null)
 					try {
 						sendChannel.basicPublish(broadcastExchangeName, "", null, pendingMsg.generateOneMsg());
 					} catch (Exception e) {
@@ -251,7 +247,7 @@ public class MessagingServices extends IntentService {
 					}
 				else
 					try {
-						sendChannel.basicPublish("", pendingMsg.to, null, pendingMsg.generateOneMsg());
+						sendChannel.basicPublish("", pendingMsg.destination, null, pendingMsg.generateOneMsg());
 					} catch (Exception e) {
 						Log.e("ERROR", "ERROR", e);
 					}

@@ -6,22 +6,25 @@ import java.security.NoSuchAlgorithmException;
 
 @SuppressWarnings("SuspiciousSystemArraycopy")
 public class Message {
-	public static final char VERSION = 1;
-	public String from;
-	public String to;
+	public static final byte VERSION = (byte) 1;
+	public String source;
+	public String destination;
 	public Object content;
 	public Type type;
-	public boolean broadcast;
+	//public boolean broadcast;
+	byte hashID[];
 
-	public Message(String from, String to, String content) {
-		this(from, to, content, Type.string);
+
+	public Message(String source, String destination, String content) {
+		this(source, destination, content, Type.string);
 	}
 
-	public Message(String from, String to, Object content, Type type) {
-		this.from = from;
-		this.to = to;
+	public Message(String source, String destination, Object content, Type type) {
+		this.source = source;
+		this.destination = destination;
 		this.content = content;
 		this.type = type;
+		calculateModifiedMD5();
 	}
 
 	public Message(byte[] input) throws Exception {
@@ -34,7 +37,7 @@ public class Message {
 		while (input[start + offset] != 0) {
 			offset++;
 		}
-		from = new String(input, start, offset);
+		source = new String(input, start, offset);
 
 		start += offset + 1;
 		offset = 0;
@@ -61,7 +64,7 @@ public class Message {
 		byte data[] = new byte[input.length - start];
 		System.arraycopy(input, start, data, 0, input.length - start);
 
-		to = null;
+		destination = null;
 
 		if (type.equals(Type.JSON.toString())) {
 			content = new String(data);
@@ -74,7 +77,11 @@ public class Message {
 			this.type = Type.binary;
 		} else throw new ClassCastException("Unrecognized Message");
 
-		if ((length() != length) || (!getModifiedMD5().equals(MD5)))
+		if (length() != length)
+			throw new ClassCastException("Verification Failed. Broken message");
+
+		calculateModifiedMD5();
+		if (!new String(hashID).equals(MD5))
 			throw new ClassCastException("Verification Failed. Broken message");
 
 	}
@@ -86,9 +93,9 @@ public class Message {
 			case JSON:
 				return "JSON:\n" + content;
 			case binary:
-				throw new ClassCastException("Convert binary to String");
+				return "Binary Length:" + length() + " Hash:" + new String(hashID);
 			default:
-				return "Unknown Message Type";
+				throw new ClassCastException("Unknown Message Type");
 		}
 	}
 
@@ -101,48 +108,66 @@ public class Message {
 			case binary:
 				return ((byte[]) content).length;
 			default:
-				throw new ClassCastException("Unrecognized Message");
+				throw new ClassCastException("Unknown Message Type");
 		}
 	}
 
-	public String getModifiedMD5() { //replace all \0 to \1 for MD5
+	public void calculateModifiedMD5() { //replace all \0 to \1 for MD5
 		MessageDigest md;
 		try {
 			md = MessageDigest.getInstance("MD5");
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
-			return null;
+			return;
 		}
-		byte data[];
 		if (type == Type.binary)
-			data = (byte[]) content;
+			hashID = (byte[]) content;
 		else
-			data = toString().getBytes();
-		data = md.digest(data);
-		for (int i = 0; i < data.length; i++) if (data[i] == 0) data[i] = 1;
-		return new String(data);
+			hashID = toString().getBytes();
+		hashID = md.digest(hashID);
+		for (int i = 0; i < hashID.length; i++) if (hashID[i] == 0) hashID[i] = 1;
 	}
 
 	public byte[] generateOneMsg() {
-		String str = "" + VERSION + from;
-		str += '\0';
-		str += length();
-		str += '\0';
-		str += getModifiedMD5();
-		str += '\0';
-		str += type.toString();
-		str += '\0';
+		byte header[] = new byte[source.length() + 30];
+		byte temp[];
+		int headerLength = 0;
+
+		header[headerLength++] = VERSION;
+
+		temp = source.getBytes();
+		System.arraycopy(temp, 0, header, headerLength, temp.length);
+		headerLength += temp.length;
+
+		header[headerLength++] = 0;
+		temp = Integer.toString(length()).getBytes();
+		System.arraycopy(temp, 0, header, headerLength, temp.length);
+		headerLength += temp.length;
+
+		header[headerLength++] = 0;
+		temp = hashID;
+		System.arraycopy(temp, 0, header, headerLength, temp.length);
+		headerLength += temp.length;
+
+		header[headerLength++] = 0;
+		temp = type.toString().getBytes();
+		System.arraycopy(temp, 0, header, headerLength, temp.length);
+		headerLength += temp.length;
+
+		header[headerLength++] = 0;
+
 		if (type == Type.binary) {
-			byte header[] = str.getBytes();
-			byte ret[] = new byte[header.length + length()];
-			System.arraycopy(header, 0, ret, 0, header.length);
-			System.arraycopy(content, 0, ret, header.length, length());
+			byte ret[] = new byte[headerLength + length()];
+			System.arraycopy(header, 0, ret, 0, headerLength);
+			System.arraycopy(content, 0, ret, headerLength, length());
 			return ret;
 		} else {
-			str += toString();
+			temp = ((String) content).getBytes();
+			byte ret[] = new byte[headerLength + temp.length];
+			System.arraycopy(header, 0, ret, 0, headerLength);
+			System.arraycopy(temp, 0, ret, headerLength, temp.length);
+			return ret;
 		}
-		return str.getBytes();
-
 	}
 
 	public enum Type {
