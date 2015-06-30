@@ -1,11 +1,8 @@
-package com.nvidia.MessgingService;
+package com.nvidia.MessagingService;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
+import android.content.*;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Message;
@@ -45,24 +42,24 @@ public class MyActivity extends Activity {
 		activity = this;
 		EditText editTextID = (EditText) findViewById(R.id.editTextID);
 		EditText editTextIP = (EditText) findViewById(R.id.editTextIP);
-		editTextID.setText(Integer.toString((int) (Math.random() * 100)));
-		//editTextID.setText("82");
-		editTextIP.setText("dhcp-172-17-187-54.nvidia.com");
+		SharedPreferences sp = getSharedPreferences("com.nvidia.MessagingService.sp", MODE_PRIVATE);
+		editTextID.setText(sp.getString("ID", "LHC"));
+		editTextIP.setText(sp.getString("IP", "192.168.1.100"));
 		alertBuilder=new AlertDialog.Builder(MyActivity.this).setPositiveButton("OK", null).setTitle("Message");
-
 		Intent intent = new Intent(MyActivity.this, MessagingServices.class);
-		intent.putExtra("ID", editTextID.getText().toString());
-		intent.putExtra("IP", editTextIP.getText().toString());
 		startService(intent);
-		bindService(new Intent(MyActivity.this, MessagingServices.class), connection, Context.BIND_AUTO_CREATE);
+		bindService(intent, connection, Context.BIND_AUTO_CREATE);
+
 
 		(findViewById(R.id.buttonStartServer)).setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				Intent intent = new Intent(MyActivity.this, MessagingServices.class);
-				intent.putExtra("ID", editTextID.getText().toString());
-				intent.putExtra("IP", editTextIP.getText().toString());
-				startService(intent);
+				String[] msg = new String[]{editTextIP.getText().toString(), editTextID.getText().toString()};
+				try {
+					messenger.send(Message.obtain(null, MessagingServices.messageWhat.changeConnectionPreferences.ordinal(), msg));
+				} catch (Exception e) {
+					Log.e("ERROR", "ERROR", e);
+				}
 			}
 		});
 
@@ -71,8 +68,6 @@ public class MyActivity extends Activity {
 			public void onClick(View v) {
 				if (messenger == null) return;
 				Intent intent = new Intent(MyActivity.this, MessagingServices.class);
-				intent.putExtra("ID", editTextID.getText().toString());
-				intent.putExtra("IP", editTextIP.getText().toString());
 				MyActivity.this.unbindService(connection);
 				messenger = null;
 				stopService(intent);
@@ -91,8 +86,8 @@ public class MyActivity extends Activity {
 				String message=((EditText)findViewById(R.id.editTextMsg)).getText().toString();
 				String target=((EditText)findViewById(R.id.editTextTarget)).getText().toString();
 
-				com.nvidia.MessgingService.Message msg
-						=new com.nvidia.MessgingService.Message(editTextID.getText().toString(), target, message);
+				com.nvidia.MessagingService.Message msg
+						= new com.nvidia.MessagingService.Message(editTextID.getText().toString(), target, message);
 				try {
 					messenger.send(Message.obtain(null, MessagingServices.messageWhat.Send.ordinal(), msg));
 				}catch(Exception e){
@@ -111,8 +106,8 @@ public class MyActivity extends Activity {
 				((EditText) findViewById(R.id.editTextGroupMsg)).selectAll();
 				String message = ((EditText) findViewById(R.id.editTextGroupMsg)).getText().toString();
 
-				com.nvidia.MessgingService.Message msg
-						=new com.nvidia.MessgingService.Message(editTextID.getText().toString(), null, message);
+				com.nvidia.MessagingService.Message msg
+						= new com.nvidia.MessagingService.Message(editTextID.getText().toString(), null, message);
 				try {
 					messenger.send(Message.obtain(null, MessagingServices.messageWhat.Send.ordinal(), msg));
 				}catch(Exception e){
@@ -140,8 +135,8 @@ public class MyActivity extends Activity {
 							}
 							fis.close();
 
-							com.nvidia.MessgingService.Message msg
-									= new com.nvidia.MessgingService.Message(editTextID.getText().toString(), null, buffer, com.nvidia.MessgingService.Message.Type.binary);
+							com.nvidia.MessagingService.Message msg
+									= new com.nvidia.MessagingService.Message(editTextID.getText().toString(), null, buffer, com.nvidia.MessagingService.Message.Type.binary);
 
 							messenger.send(Message.obtain(null, MessagingServices.messageWhat.Send.ordinal(), msg));
 

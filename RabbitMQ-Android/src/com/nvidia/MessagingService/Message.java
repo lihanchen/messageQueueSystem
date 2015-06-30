@@ -1,4 +1,4 @@
-package com.nvidia.MessgingService;
+package com.nvidia.MessagingService;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

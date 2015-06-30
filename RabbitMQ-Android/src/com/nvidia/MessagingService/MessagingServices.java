@@ -1,10 +1,11 @@
-package com.nvidia.MessgingService;
+package com.nvidia.MessagingService;
 
 import android.app.IntentService;
 import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -20,9 +21,7 @@ import java.io.FileOutputStream;
 
 public class MessagingServices extends IntentService {
 	final public static String broadcastExchangeName = "broadcast_group";
-	final public static int RECONNECT_WAITING_TIME = 60000;
-	final public static String username = "lhc";
-	final public static String password = "123";
+	final public static int RECONNECT_WAITING_TIME = 10000;
 	final static Messenger messenger = new Messenger(new IncomingHandler());
 	public static NotificationManager notificationManager;
 	static int notificationID=0;
@@ -32,14 +31,17 @@ public class MessagingServices extends IntentService {
 	static String IP;
 	static String ID;
 	static NotificationCompat.Builder nBuilder;
-	static Thread broadcastReceiver, queueReceiver;
+	static Thread broadcastReceiver, queueReceiver, connectingThread;
 	static AutorecoveringConnection conn;
+	static boolean running = false;
+	static SharedPreferences sp;
+
 
 	public MessagingServices() {
 		super("NVIDIA Messaging Services");
 	}
 
-	public static synchronized void processBinary(com.nvidia.MessgingService.Message msg) {
+	public static synchronized void processBinary(com.nvidia.MessagingService.Message msg) {
 		new Thread() {
 			public void run() {
 				try {
@@ -80,7 +82,7 @@ public class MessagingServices extends IntentService {
 					while (true) {
 						try {
 							QueueingConsumer.Delivery delivery = consumer.nextDelivery();
-							com.nvidia.MessgingService.Message msg = new com.nvidia.MessgingService.Message(delivery.getBody());
+							com.nvidia.MessagingService.Message msg = new com.nvidia.MessagingService.Message(delivery.getBody());
 							Log.i("rabbitMQ", " [x] Received '" + msg + "'");
 							MessagingServices.nBuilder.setContentText("From " + msg.source + ":\n" + msg);
 							MessagingServices.nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received Message From " + msg.source + ":\n" + msg));
@@ -122,9 +124,9 @@ public class MessagingServices extends IntentService {
 					Log.i("info", "BroadcastReceiver Running");
 					while (true) {
 						try {
-							com.nvidia.MessgingService.Message msg = new com.nvidia.MessgingService.Message(consumer.nextDelivery().getBody());
+							com.nvidia.MessagingService.Message msg = new com.nvidia.MessagingService.Message(consumer.nextDelivery().getBody());
 							if (msg.source.equals(ID)) continue;
-							if (msg.type == com.nvidia.MessgingService.Message.Type.binary) {
+							if (msg.type == com.nvidia.MessagingService.Message.Type.binary) {
 								processBinary(msg);
 								continue;
 							}
@@ -156,6 +158,50 @@ public class MessagingServices extends IntentService {
 		broadcastReceiver.start();
 	}
 
+	static void connect() {
+		if (running) return;
+		if (IP == null) return;
+		running = true;
+
+		connectingThread = new Thread() {
+			public void run() {
+				Log.w("Connect", "Start Connection");
+				factory = new ConnectionFactory();
+				factory.setConnectionTimeout(5000);
+				factory.setAutomaticRecoveryEnabled(true);
+				factory.setTopologyRecoveryEnabled(true);
+				factory.setNetworkRecoveryInterval(5000);
+				while (running) {
+					try {
+						factory.setUri("amqp://" + IP + ":5672");
+						conn = (AutorecoveringConnection) factory.newConnection();
+						conn.addRecoveryListener(new RecoveryListener() {
+							@Override
+							public void handleRecovery(Recoverable recoverable) {
+								Log.i("Recover", "Recovered");
+								startReceiverThreads();
+							}
+						});
+						sendChannel = conn.createChannel();
+						Log.i("info", "success");
+						startReceiverThreads();
+						return;
+					} catch (Exception e) {
+						Log.e("ERROR", "ERROR", e);
+						Log.w("Connect", "Connecting Failed");
+						try {
+							Thread.sleep(RECONNECT_WAITING_TIME);
+						} catch (InterruptedException e1) {
+							running = false;
+							return;
+						}
+					}
+				}
+			}
+		};
+		connectingThread.start();
+	}
+
 	@Override
 	public void onCreate() {
 		super.onCreate();
@@ -164,6 +210,9 @@ public class MessagingServices extends IntentService {
 		nBuilder.setContentTitle("NVIDIA Messaging Service");
 		nBuilder.setSmallIcon(R.mipmap.notification_icon);
 		nBuilder.setVibrate(new long[]{500, 100});
+		sp = getSharedPreferences("com.nvidia.MessagingService.sp", MODE_PRIVATE);
+		IP = sp.getString("IP", null);
+		ID = sp.getString("ID", null);
 	}
 
 	@Override
@@ -173,72 +222,18 @@ public class MessagingServices extends IntentService {
 
 	@Override
 	protected void onHandleIntent(Intent intent) {
-		Log.e("", "Start Services");
-		if (intent.hasExtra("IP")) {
-			IP = intent.getStringExtra("IP");
-			ID = intent.getStringExtra("ID");
-		} else {
-			IP = "dhcp-172-17-187-54.nvidia.com";
-			ID = "qwerty";
-		}
-		try {
-			conn.close();
-		} catch (Exception e) {
-			Log.i("ERROR", "ERROR", e);
-		}
-		while (true) {
-			Log.w("Connect", "Start Connection");
-			if (sendChannel != null) {
-				try {
-					queueReceiver.interrupt();
-					broadcastReceiver.interrupt();
-					sendChannel.close();
-				} catch (Exception e) {
-					Log.e("ERROR", "ERROR", e);
-				}
-			}
-
-			try {
-				factory = new ConnectionFactory();
-				factory.setUri("amqp://" + username + ":" + password + "@" + IP + ":5672");
-				factory.setConnectionTimeout(5000);
-				factory.setRequestedHeartbeat(600);
-				factory.setAutomaticRecoveryEnabled(true);
-				factory.setTopologyRecoveryEnabled(true);
-				factory.setNetworkRecoveryInterval(5000);
-				conn = (AutorecoveringConnection) factory.newConnection();
-				conn.addRecoveryListener(new RecoveryListener() {
-					@Override
-					public void handleRecovery(Recoverable recoverable) {
-						Log.i("Recover", "Recovered");
-						startReceiverThreads();
-					}
-				});
-				sendChannel = conn.createChannel();
-				Log.i("info", "success");
-				startReceiverThreads();
-				return;
-			} catch (Exception e) {
-				Log.e("ERROR", "ERROR", e);
-				Log.w("Connect", "Connecting Failed");
-				try {
-					Thread.sleep(RECONNECT_WAITING_TIME);
-				} catch (InterruptedException e1) {
-					Log.i("ERROR", "ERROR", e1);
-				}
-			}
-		}
+		connect();
 	}
 
 	public enum messageWhat {
-		Send
+		Send, changeConnectionPreferences, closeConnection
 	}
 
 	static class IncomingHandler extends Handler {
 		@Override
 		public void handleMessage(Message msg) {
 			if (msg.what==messageWhat.Send.ordinal()){
-				com.nvidia.MessgingService.Message pendingMsg=(com.nvidia.MessgingService.Message)msg.obj;
+				com.nvidia.MessagingService.Message pendingMsg = (com.nvidia.MessagingService.Message) msg.obj;
 				if (pendingMsg.destination == null)
 					try {
 						sendChannel.basicPublish(broadcastExchangeName, "", null, pendingMsg.generateOneMsg());
@@ -251,6 +246,30 @@ public class MessagingServices extends IntentService {
 					} catch (Exception e) {
 						Log.e("ERROR", "ERROR", e);
 					}
+			} else if (msg.what == messageWhat.changeConnectionPreferences.ordinal()) {
+				IP = ((String[]) msg.obj)[0];
+				ID = ((String[]) msg.obj)[1];
+				sp.edit().putString("IP", IP).putString("ID", ID).apply();
+				try {
+					if (connectingThread != null) connectingThread.interrupt();
+					if (queueReceiver != null) queueReceiver.interrupt();
+					if (queueReceiver != null) broadcastReceiver.interrupt();
+					if (conn.isOpen()) conn.close();
+				} catch (Exception e) {
+					Log.i("Error", "Error", e);
+				}
+				running = false;
+				connect();
+			} else if (msg.what == messageWhat.closeConnection.ordinal()) {
+				try {
+					if (connectingThread != null) connectingThread.interrupt();
+					if (queueReceiver != null) queueReceiver.interrupt();
+					if (queueReceiver != null) broadcastReceiver.interrupt();
+					if (conn.isOpen()) conn.close();
+				} catch (Exception e) {
+					Log.i("Error", "Error", e);
+				}
+				running = false;
 			}
 		}
 	}
