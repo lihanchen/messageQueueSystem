@@ -21,9 +21,6 @@ public class MyActivity extends Activity {
 
 	public final static int MAX_FILE_SIZE = 10 * 1024 * 1024; //10MB
 
-
-	public static Activity activity;
-
 	Messenger messenger=null;
 	ServiceConnection connection=new ServiceConnection() {
 		public void onServiceConnected(ComponentName name, IBinder service) {
@@ -39,7 +36,6 @@ public class MyActivity extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
-		activity = this;
 		EditText editTextID = (EditText) findViewById(R.id.editTextID);
 		EditText editTextIP = (EditText) findViewById(R.id.editTextIP);
 		SharedPreferences sp = getSharedPreferences("com.nvidia.MessagingService.sp", MODE_PRIVATE);
@@ -147,8 +143,6 @@ public class MyActivity extends Activity {
 				}.start();
 			}
 		});
-
-
 	}
 
 	@Override

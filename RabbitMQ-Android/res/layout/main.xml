@@ -88,7 +88,8 @@
                     android:id="@+id/editTextTarget"
                     android:layout_marginLeft="30dp"
                     android:layout_marginRight="30dp"
-                    android:layout_weight="1"/>
+                    android:layout_weight="1"
+                    android:singleLine="true"/>
             <Button
                     style="?android:attr/buttonStyleSmall"
                     android:layout_width="wrap_content"

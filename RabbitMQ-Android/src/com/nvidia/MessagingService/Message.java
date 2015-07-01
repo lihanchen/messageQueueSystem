@@ -27,7 +27,7 @@ public class Message {
 		calculateModifiedMD5();
 	}
 
-	public Message(byte[] input) throws Exception {
+	public Message(byte[] input) {
 		if (input[0] != VERSION) throw new ClassCastException("Message of a different version");
 
 		int start, offset;

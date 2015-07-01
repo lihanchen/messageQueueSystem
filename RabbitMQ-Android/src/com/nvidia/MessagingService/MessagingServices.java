@@ -21,7 +21,7 @@ import java.io.FileOutputStream;
 
 public class MessagingServices extends IntentService {
 	final public static String broadcastExchangeName = "broadcast_group";
-	final public static int RECONNECT_WAITING_TIME = 10000;
+	final public static int RECONNECT_WAITING_TIME = 30000;
 	final static Messenger messenger = new Messenger(new IncomingHandler());
 	public static NotificationManager notificationManager;
 	static int notificationID=0;
@@ -170,7 +170,7 @@ public class MessagingServices extends IntentService {
 				factory.setConnectionTimeout(5000);
 				factory.setAutomaticRecoveryEnabled(true);
 				factory.setTopologyRecoveryEnabled(true);
-				factory.setNetworkRecoveryInterval(5000);
+				factory.setNetworkRecoveryInterval(10000);
 				while (running) {
 					try {
 						factory.setUri("amqp://" + IP + ":5672");
