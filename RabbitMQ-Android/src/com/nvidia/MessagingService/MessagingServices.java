@@ -85,7 +85,7 @@ public class MessagingServices extends IntentService {
 							com.nvidia.MessagingService.Message msg = new com.nvidia.MessagingService.Message(delivery.getBody());
 							Log.i("rabbitMQ", " [x] Received '" + msg + "'");
 							MessagingServices.nBuilder.setContentText("From " + msg.source + ":\n" + msg);
-							MessagingServices.nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received Message From " + msg.source + ":\n" + msg));
+							MessagingServices.nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received Message From " + msg.source + " at channel " + msg.channel + ":\n" + msg));
 							MessagingServices.nBuilder.setTicker(msg.toString());
 							MessagingServices.notificationManager.notify(MessagingServices.notificationID++, MessagingServices.nBuilder.build());
 							queueReceiverChannel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
@@ -132,7 +132,7 @@ public class MessagingServices extends IntentService {
 							}
 							Log.i("rabbitMQ", " [x] Received Broadcast'" + msg + "'");
 							nBuilder.setContentText("Broadcast from " + msg.source + ":\n" + msg);
-							nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received broadcast From " + msg.source + ":\n" + msg));
+							nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received broadcast From " + msg.source + " at channel " + msg.channel + ":\n" + msg));
 							nBuilder.setTicker(msg.toString());
 							notificationManager.notify(notificationID++, nBuilder.build());
 						} catch (InterruptedException e) {

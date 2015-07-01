@@ -1,5 +1,6 @@
 package com.nvidia.MessagingService;
 
+import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -11,28 +12,36 @@ public class Message {
 	public String destination;
 	public Object content;
 	public Type type;
+	public int channel;
 	//public boolean broadcast;
 	byte hashID[];
 
 
-	public Message(String source, String destination, String content) {
-		this(source, destination, content, Type.string);
+	public Message(String source, String destination, int channel, String content) {
+		this(source, destination, channel, content, Type.string);
 	}
 
-	public Message(String source, String destination, Object content, Type type) {
+	public Message(String source, String destination, int channel, Object content, Type type) {
 		this.source = source;
 		this.destination = destination;
 		this.content = content;
 		this.type = type;
+		this.channel = channel;
 		calculateModifiedMD5();
 	}
 
 	public Message(byte[] input) {
 		if (input[0] != VERSION) throw new ClassCastException("Message of a different version");
+		ByteBuffer bb = ByteBuffer.allocate(4);
+		bb.put(0, input[1]);
+		bb.put(1, input[2]);
+		bb.put(2, input[3]);
+		bb.put(3, input[4]);
+		channel = bb.getInt();
 
 		int start, offset;
 
-		start = 1;
+		start = 5;
 		offset = 0;
 		while (input[start + offset] != 0) {
 			offset++;
@@ -129,11 +138,18 @@ public class Message {
 	}
 
 	public byte[] generateOneMsg() {
-		byte header[] = new byte[source.length() + 30];
+		byte header[] = new byte[source.length() + 35];
 		byte temp[];
 		int headerLength = 0;
 
 		header[headerLength++] = VERSION;
+
+		ByteBuffer bb = ByteBuffer.allocate(4).putInt(channel);
+		header[headerLength++] = bb.get(0);
+		header[headerLength++] = bb.get(1);
+		header[headerLength++] = bb.get(2);
+		header[headerLength++] = bb.get(3);
+
 
 		temp = source.getBytes();
 		System.arraycopy(temp, 0, header, headerLength, temp.length);

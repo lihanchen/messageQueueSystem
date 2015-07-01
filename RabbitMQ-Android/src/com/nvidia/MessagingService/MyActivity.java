@@ -83,7 +83,7 @@ public class MyActivity extends Activity {
 				String target=((EditText)findViewById(R.id.editTextTarget)).getText().toString();
 
 				com.nvidia.MessagingService.Message msg
-						= new com.nvidia.MessagingService.Message(editTextID.getText().toString(), target, message);
+						= new com.nvidia.MessagingService.Message(editTextID.getText().toString(), target, 5, message);
 				try {
 					messenger.send(Message.obtain(null, MessagingServices.messageWhat.Send.ordinal(), msg));
 				}catch(Exception e){
@@ -103,7 +103,7 @@ public class MyActivity extends Activity {
 				String message = ((EditText) findViewById(R.id.editTextGroupMsg)).getText().toString();
 
 				com.nvidia.MessagingService.Message msg
-						= new com.nvidia.MessagingService.Message(editTextID.getText().toString(), null, message);
+						= new com.nvidia.MessagingService.Message(editTextID.getText().toString(), null, 0, message);
 				try {
 					messenger.send(Message.obtain(null, MessagingServices.messageWhat.Send.ordinal(), msg));
 				}catch(Exception e){
@@ -132,7 +132,7 @@ public class MyActivity extends Activity {
 							fis.close();
 
 							com.nvidia.MessagingService.Message msg
-									= new com.nvidia.MessagingService.Message(editTextID.getText().toString(), null, buffer, com.nvidia.MessagingService.Message.Type.binary);
+									= new com.nvidia.MessagingService.Message(editTextID.getText().toString(), null, 0, buffer, com.nvidia.MessagingService.Message.Type.binary);
 
 							messenger.send(Message.obtain(null, MessagingServices.messageWhat.Send.ordinal(), msg));
 
