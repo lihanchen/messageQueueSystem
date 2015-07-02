@@ -36,7 +36,7 @@ public class MyActivity extends Activity {
 		setContentView(R.layout.main);
 		EditText editTextID = (EditText) findViewById(R.id.editTextID);
 		EditText editTextIP = (EditText) findViewById(R.id.editTextIP);
-		SharedPreferences sp = getSharedPreferences("com.nvidia.MessagingService.sp", MODE_PRIVATE);
+		SharedPreferences sp = getSharedPreferences("com.nvidia.MessagingServiceTest.sp", MODE_PRIVATE);
 		editTextID.setText(sp.getString("ID", "LHC"));
 		editTextIP.setText(sp.getString("IP", "192.168.1.100"));
 		alertBuilder = new AlertDialog.Builder(MyActivity.this).setPositiveButton("OK", null).setTitle("Message");
@@ -49,68 +49,81 @@ public class MyActivity extends Activity {
 		(findViewById(R.id.buttonStartServer)).setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				String[] msg = new String[]{editTextIP.getText().toString(), editTextID.getText().toString()};
+				Intent intent = new Intent();
+				intent.setComponent(new ComponentName("com.nvidia.MessagingService", "com.nvidia.MessagingService.MessagingService"));
+				startService(intent);
+				sp.edit().putString("IP", ((EditText) findViewById(R.id.editTextIP)).getText().toString()).putString("ID", ((EditText) findViewById(R.id.editTextID)).getText().toString()).apply();
+				Bundle bundle = new Bundle();
+				bundle.putString("IP", ((EditText) findViewById(R.id.editTextIP)).getText().toString());
+				bundle.putString("ID", ((EditText) findViewById(R.id.editTextID)).getText().toString());
 				try {
-					messenger.send(Message.obtain(null, Enum.IPCmessageWhat.ChangeConnectionPreferences.ordinal(), msg));
+					messenger.send(Message.obtain(null, Enum.IPCmessageWhat.ChangeConnectionPreferences.ordinal(), bundle));
 				} catch (Exception e) {
 					Log.e("ERROR", "ERROR", e);
 				}
 			}
 		});
 
-		(findViewById(R.id.buttonStopServer)).setOnClickListener(new View.OnClickListener() {
-			@Override
+//		(findViewById(R.id.buttonStopServer)).setOnClickListener(new View.OnClickListener() {
+//			@Override
+//			public void onClick(View v) {
+//				if (messenger == null) return;
+//				Intent intent = new Intent();
+//				intent.setComponent(new ComponentName("com.nvidia.MessagingService", "com.nvidia.MessagingService.MessagingService"));
+//				MyActivity.this.unbindService(connection);
+//				messenger = null;
+//				stopService(intent);
+//			}
+//		});
+
+		(findViewById(R.id.buttonSend)).setOnClickListener(new View.OnClickListener() {
 			public void onClick(View v) {
-				if (messenger == null) return;
-				Intent intent = new Intent();
-				intent.setComponent(new ComponentName("com.nvidia.MessagingService", "com.nvidia.MessagingService.MessagingService"));
-				MyActivity.this.unbindService(connection);
-				messenger = null;
-				stopService(intent);
+				if (messenger == null) {
+					showMessageBox("Failed communicating with service");
+					return;
+				}
+
+				((EditText) findViewById(R.id.editTextMsg)).selectAll();
+
+				String message = ((EditText) findViewById(R.id.editTextMsg)).getText().toString();
+				String target = ((EditText) findViewById(R.id.editTextTarget)).getText().toString();
+				Integer channel = 5;
+
+				Bundle bundle = new Bundle();
+				bundle.putString("destination", target);
+				bundle.putString("content", message);
+				bundle.putInt("channel", channel);
+				try {
+					messenger.send(Message.obtain(null, Enum.IPCmessageWhat.SendText.ordinal(), bundle));
+				} catch (Exception e) {
+					Log.e("ERROR", "ERROR", e);
+				}
 			}
 		});
 
-//		(findViewById(R.id.buttonSend)).setOnClickListener(new View.OnClickListener() {
-//			public void onClick(View v) {
-//				if (messenger==null){
-//					showMessageBox("Failed communicating with service");
-//					return;
-//				}
-//
-//				((EditText) findViewById(R.id.editTextMsg)).selectAll();
-//
-//				String message=((EditText)findViewById(R.id.editTextMsg)).getText().toString();
-//				String target=((EditText)findViewById(R.id.editTextTarget)).getText().toString();
-//
-//				com.nvidia.MessagingService.Message msg
-//						= new com.nvidia.MessagingService.Message(editTextID.getText().toString(), target, 5, message);
-//				try {
-//					messenger.send(Message.obtain(null, MessagingService.messageWhat.Send.ordinal(), msg));
-//				}catch(Exception e){
-//					Log.e("ERROR","ERROR",e);
-//				}
-//			}
-//		});
-//
-//		(findViewById(R.id.buttonSendGroup)).setOnClickListener(new View.OnClickListener() {
-//			public void onClick(View v) {
-//				if (messenger == null) {
-//					showMessageBox("Failed communicating with service");
-//					return;
-//				}
-//
-//				((EditText) findViewById(R.id.editTextGroupMsg)).selectAll();
-//				String message = ((EditText) findViewById(R.id.editTextGroupMsg)).getText().toString();
-//
-//				com.nvidia.MessagingService.Message msg
-//						= new com.nvidia.MessagingService.Message(editTextID.getText().toString(), null, 0, message);
-//				try {
-//					messenger.send(Message.obtain(null, MessagingService.messageWhat.Send.ordinal(), msg));
-//				}catch(Exception e){
-//					Log.e("ERROR","ERROR",e);
-//				}
-//			}
-//		});
+		(findViewById(R.id.buttonSendGroup)).setOnClickListener(new View.OnClickListener() {
+			public void onClick(View v) {
+				if (messenger == null) {
+					showMessageBox("Failed communicating with service");
+					return;
+				}
+
+				((EditText) findViewById(R.id.editTextMsg)).selectAll();
+
+				String message = ((EditText) findViewById(R.id.editTextMsg)).getText().toString();
+				Integer channel = 4;
+
+				Bundle bundle = new Bundle();
+				bundle.putString("destination", null);
+				bundle.putString("content", message);
+				bundle.putInt("channel", channel);
+				try {
+					messenger.send(Message.obtain(null, Enum.IPCmessageWhat.SendText.ordinal(), bundle));
+				} catch (Exception e) {
+					Log.e("ERROR", "ERROR", e);
+				}
+			}
+		});
 //
 //		(findViewById(R.id.buttonBroadcastPic)).setOnClickListener(new View.OnClickListener() {
 //			public void onClick(View v) {
@@ -134,7 +147,7 @@ public class MyActivity extends Activity {
 //							com.nvidia.MessagingService.Message msg
 //									= new com.nvidia.MessagingService.Message(editTextID.getText().toString(), null, 0, buffer, com.nvidia.MessagingService.Message.Type.binary);
 //
-//							messenger.send(Message.obtain(null, MessagingService.messageWhat.Send.ordinal(), msg));
+//							messenger.send(Message.obtain(null, MessagingService.messageWhat.SendText.ordinal(), msg));
 //
 //						} catch (Exception e) {
 //							Log.e("ERROR", "ERROR", e);

@@ -6,10 +6,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Handler;
-import android.os.IBinder;
+import android.os.*;
 import android.os.Message;
-import android.os.Messenger;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import com.rabbitmq.client.*;
@@ -228,23 +226,28 @@ public class MessagingService extends IntentService {
 	static class IncomingHandler extends Handler {
 		@Override
 		public void handleMessage(Message msg) {
-			if (msg.what == Enum.IPCmessageWhat.Send.ordinal()) {
-				com.nvidia.MessagingService.Message pendingMsg = (com.nvidia.MessagingService.Message) msg.obj;
-				if (pendingMsg.destination == null)
+			if (msg.what == Enum.IPCmessageWhat.SendText.ordinal()) {
+				Bundle bundle = (Bundle) msg.obj;
+				String destination = bundle.getString("destination");
+				String content = bundle.getString("content");
+				Integer channel = bundle.getInt("channel");
+				com.nvidia.MessagingService.Message message = new com.nvidia.MessagingService.Message(ID, destination, channel, content);
+				if (destination == null)
 					try {
-						sendChannel.basicPublish(broadcastExchangeName, "", null, pendingMsg.generateOneMsg());
+						sendChannel.basicPublish(broadcastExchangeName, "", null, message.generateOneMsg());
 					} catch (Exception e) {
 						Log.e("ERROR", "ERROR", e);
 					}
 				else
 					try {
-						sendChannel.basicPublish("", pendingMsg.destination, null, pendingMsg.generateOneMsg());
+						sendChannel.basicPublish("", destination, null, message.generateOneMsg());
 					} catch (Exception e) {
 						Log.e("ERROR", "ERROR", e);
 					}
 			} else if (msg.what == Enum.IPCmessageWhat.ChangeConnectionPreferences.ordinal()) {
-				IP = ((String[]) msg.obj)[0];
-				ID = ((String[]) msg.obj)[1];
+				Bundle bundle = (Bundle) msg.obj;
+				String IP = bundle.getString("IP");
+				String ID = bundle.getString("ID");
 				sp.edit().putString("IP", IP).putString("ID", ID).apply();
 				try {
 					if (connectingThread != null) connectingThread.interrupt();

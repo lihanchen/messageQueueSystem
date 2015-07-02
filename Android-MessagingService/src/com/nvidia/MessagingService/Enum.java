@@ -1,8 +1,5 @@
 package com.nvidia.MessagingService;
 
-/**
- * Created by hanchenl on 7/2/15.
- */
 public class Enum {
 
 
@@ -11,6 +8,6 @@ public class Enum {
 	}
 
 	public enum IPCmessageWhat {
-		Send, ChangeConnectionPreferences, CloseConnection, Success, Failed
+		SendText, ChangeConnectionPreferences, CloseConnection, Success, Failed
 	}
 }

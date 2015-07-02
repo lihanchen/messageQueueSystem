@@ -55,15 +55,7 @@
                     android:layout_height="wrap_content"
                     android:text="StartServer"
                     android:id="@+id/buttonStartServer"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginRight="20dp"/>
-            <Button style="?android:attr/buttonStyleSmall"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="StopServer"
-                    android:id="@+id/buttonStopServer"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginLeft="20dp"/>
+                    android:layout_gravity="center_horizontal"/>
         </LinearLayout>
         <TextView
                 android:layout_width="wrap_content"
