@@ -19,7 +19,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 
 
-public class MessagingServices extends IntentService {
+public class MessagingService extends IntentService {
 	final public static String broadcastExchangeName = "broadcast_group";
 	final public static int RECONNECT_WAITING_TIME = 30000;
 	final static Messenger messenger = new Messenger(new IncomingHandler());
@@ -37,7 +37,7 @@ public class MessagingServices extends IntentService {
 	static SharedPreferences sp;
 
 
-	public MessagingServices() {
+	public MessagingService() {
 		super("NVIDIA Messaging Services");
 	}
 
@@ -75,19 +75,19 @@ public class MessagingServices extends IntentService {
 						Log.i("ERROR", "ERROR", e);
 					}
 					queueReceiverChannel = conn.createChannel();
-					queueReceiverChannel.queueDeclare(MessagingServices.ID, false, false, false, null);
+					queueReceiverChannel.queueDeclare(MessagingService.ID, false, false, false, null);
 					QueueingConsumer consumer = new QueueingConsumer(queueReceiverChannel);
-					queueReceiverConsumerTag = queueReceiverChannel.basicConsume(MessagingServices.ID, false, consumer);
+					queueReceiverConsumerTag = queueReceiverChannel.basicConsume(MessagingService.ID, false, consumer);
 					Log.i("info", "queueReceiver Running");
 					while (true) {
 						try {
 							QueueingConsumer.Delivery delivery = consumer.nextDelivery();
 							com.nvidia.MessagingService.Message msg = new com.nvidia.MessagingService.Message(delivery.getBody());
 							Log.i("rabbitMQ", " [x] Received '" + msg + "'");
-							MessagingServices.nBuilder.setContentText("From " + msg.source + ":\n" + msg);
-							MessagingServices.nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received Message From " + msg.source + " at channel " + msg.channel + ":\n" + msg));
-							MessagingServices.nBuilder.setTicker(msg.toString());
-							MessagingServices.notificationManager.notify(MessagingServices.notificationID++, MessagingServices.nBuilder.build());
+							MessagingService.nBuilder.setContentText("From " + msg.source + ":\n" + msg);
+							MessagingService.nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received Message From " + msg.source + " at channel " + msg.channel + ":\n" + msg));
+							MessagingService.nBuilder.setTicker(msg.toString());
+							MessagingService.notificationManager.notify(MessagingService.notificationID++, MessagingService.nBuilder.build());
 							queueReceiverChannel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
 						} catch (InterruptedException e) {
 							Log.i("info", "queueReceiver Killed");
@@ -126,7 +126,7 @@ public class MessagingServices extends IntentService {
 						try {
 							com.nvidia.MessagingService.Message msg = new com.nvidia.MessagingService.Message(consumer.nextDelivery().getBody());
 							if (msg.source.equals(ID)) continue;
-							if (msg.type == com.nvidia.MessagingService.Message.Type.binary) {
+							if (msg.type == Enum.MessageType.binary) {
 								processBinary(msg);
 								continue;
 							}
@@ -160,7 +160,6 @@ public class MessagingServices extends IntentService {
 
 	static void connect() {
 		if (running) return;
-		if (IP == null) return;
 		running = true;
 
 		connectingThread = new Thread() {
@@ -211,8 +210,9 @@ public class MessagingServices extends IntentService {
 		nBuilder.setSmallIcon(R.mipmap.notification_icon);
 		nBuilder.setVibrate(new long[]{500, 100});
 		sp = getSharedPreferences("com.nvidia.MessagingService.sp", MODE_PRIVATE);
-		IP = sp.getString("IP", null);
-		ID = sp.getString("ID", null);
+		IP = sp.getString("IP", "172.17.186.227");
+		ID = sp.getString("ID", "defaultID");
+
 	}
 
 	@Override
@@ -225,14 +225,10 @@ public class MessagingServices extends IntentService {
 		connect();
 	}
 
-	public enum messageWhat {
-		Send, changeConnectionPreferences, closeConnection
-	}
-
 	static class IncomingHandler extends Handler {
 		@Override
 		public void handleMessage(Message msg) {
-			if (msg.what==messageWhat.Send.ordinal()){
+			if (msg.what == Enum.IPCmessageWhat.Send.ordinal()) {
 				com.nvidia.MessagingService.Message pendingMsg = (com.nvidia.MessagingService.Message) msg.obj;
 				if (pendingMsg.destination == null)
 					try {
@@ -246,7 +242,7 @@ public class MessagingServices extends IntentService {
 					} catch (Exception e) {
 						Log.e("ERROR", "ERROR", e);
 					}
-			} else if (msg.what == messageWhat.changeConnectionPreferences.ordinal()) {
+			} else if (msg.what == Enum.IPCmessageWhat.ChangeConnectionPreferences.ordinal()) {
 				IP = ((String[]) msg.obj)[0];
 				ID = ((String[]) msg.obj)[1];
 				sp.edit().putString("IP", IP).putString("ID", ID).apply();
@@ -260,7 +256,7 @@ public class MessagingServices extends IntentService {
 				}
 				running = false;
 				connect();
-			} else if (msg.what == messageWhat.closeConnection.ordinal()) {
+			} else if (msg.what == Enum.IPCmessageWhat.CloseConnection.ordinal()) {
 				try {
 					if (connectingThread != null) connectingThread.interrupt();
 					if (queueReceiver != null) queueReceiver.interrupt();
@@ -276,7 +272,7 @@ public class MessagingServices extends IntentService {
 
 	public static class BootBroadcastReceiver extends BroadcastReceiver {
 		public void onReceive(Context context, Intent intent) {
-			Intent service = new Intent(context, MessagingServices.class);
+			Intent service = new Intent(context, MessagingService.class);
 			context.startService(service);
 		}
 

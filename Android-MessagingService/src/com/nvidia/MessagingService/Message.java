@@ -11,21 +11,21 @@ public class Message {
 	public String source;
 	public String destination;
 	public Object content;
-	public Type type;
+	public Enum.MessageType type;
 	public int channel;
 	//public boolean broadcast;
 	byte hashID[];
 
 
 	public Message(String source, String destination, int channel, String content) {
-		this(source, destination, channel, content, Type.string);
+		this(source, destination, channel, content, Enum.MessageType.string);
 	}
 
-	public Message(String source, String destination, int channel, Object content, Type type) {
+	public Message(String source, String destination, int channel, Object content, Enum.MessageType messageType) {
 		this.source = source;
 		this.destination = destination;
 		this.content = content;
-		this.type = type;
+		this.type = messageType;
 		this.channel = channel;
 		calculateModifiedMD5();
 	}
@@ -75,15 +75,15 @@ public class Message {
 
 		destination = null;
 
-		if (type.equals(Type.JSON.toString())) {
+		if (type.equals(Enum.MessageType.JSON.toString())) {
 			content = new String(data);
-			this.type = Type.JSON;
-		} else if (type.equals(Type.string.toString())) {
+			this.type = Enum.MessageType.JSON;
+		} else if (type.equals(Enum.MessageType.string.toString())) {
 			content = new String(data);
-			this.type = Type.string;
-		} else if (type.equals(Type.binary.toString())) {
+			this.type = Enum.MessageType.string;
+		} else if (type.equals(Enum.MessageType.binary.toString())) {
 			content = data;
-			this.type = Type.binary;
+			this.type = Enum.MessageType.binary;
 		} else throw new ClassCastException("Unrecognized Message");
 
 		if (length() != length)
@@ -129,7 +129,7 @@ public class Message {
 			e.printStackTrace();
 			return;
 		}
-		if (type == Type.binary)
+		if (type == Enum.MessageType.binary)
 			hashID = (byte[]) content;
 		else
 			hashID = toString().getBytes();
@@ -172,7 +172,7 @@ public class Message {
 
 		header[headerLength++] = 0;
 
-		if (type == Type.binary) {
+		if (type == Enum.MessageType.binary) {
 			byte ret[] = new byte[headerLength + length()];
 			System.arraycopy(header, 0, ret, 0, headerLength);
 			System.arraycopy(content, 0, ret, headerLength, length());
@@ -184,10 +184,6 @@ public class Message {
 			System.arraycopy(temp, 0, ret, headerLength, temp.length);
 			return ret;
 		}
-	}
-
-	public enum Type {
-		JSON, binary, string
 	}
 
 }
