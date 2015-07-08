@@ -13,9 +13,6 @@ import android.util.Log;
 import com.rabbitmq.client.*;
 import com.rabbitmq.client.impl.recovery.AutorecoveringConnection;
 
-import java.io.File;
-import java.io.FileOutputStream;
-
 
 public class MessagingService extends IntentService {
 	final public static String broadcastExchangeName = "broadcast_group";
@@ -33,28 +30,46 @@ public class MessagingService extends IntentService {
 	static AutorecoveringConnection conn;
 	static boolean running = false;
 	static SharedPreferences sp;
-
+	static Context context;
+	static Dispatcher dispatcher;
 
 	public MessagingService() {
 		super("NVIDIA Messaging Services");
 	}
 
-	public static synchronized void processBinary(com.nvidia.MessagingService.Message msg) {
-		new Thread() {
-			public void run() {
-				try {
-					File file = new File("/sdcard/vim2.jpg");
-					FileOutputStream fos = new FileOutputStream(file);
-					fos.write((byte[]) msg.content);
-					fos.close();
-					nBuilder.setContentText("Received binary file from " + msg.source);
-					nBuilder.setTicker("Received binary file");
-					notificationManager.notify(notificationID++, nBuilder.build());
-				} catch (Exception e) {
-					Log.e("ERROR", "ERROR", e);
-				}
-			}
-		}.start();
+//	public static synchronized void processBinary(com.nvidia.MessagingService.Message msg) {
+//		new Thread() {
+//			public void run() {
+//				try {
+//					File file = new File("/sdcard/vim2.jpg");
+//					FileOutputStream fos = new FileOutputStream(file);
+//					fos.write((byte[]) msg.content);
+//					fos.close();
+//					nBuilder.setContentText("Received binary file from " + msg.source);
+//					nBuilder.setTicker("Received binary file");
+//					notificationManager.notify(notificationID++, nBuilder.build());
+//				} catch (Exception e) {
+//					Log.e("ERROR", "ERROR", e);
+//				}
+//			}
+//		}.start();
+//	}
+
+	public static synchronized void processMsg(com.nvidia.MessagingService.Message msg) {
+		Log.i("rabbitMQ", " [x] Received '" + msg + "'");
+//		MessagingService.nBuilder.setContentText("From " + msg.source + ":\n" + msg);
+//		MessagingService.nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received Message From " + msg.source + " at channel " + msg.channel + ":\n" + msg));
+//		MessagingService.nBuilder.setTicker(msg.toString());
+//		MessagingService.notificationManager.notify(MessagingService.notificationID++, MessagingService.nBuilder.build());
+		try {
+			Intent intent = new Intent();
+			intent.setClassName("com.nvidia.MessagingServiceTest", "com.nvidia.MessagingServiceTest.MyActivity");
+			intent.setAction(Intent.ACTION_VIEW);
+			intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+			context.startActivity(intent);
+		} catch (Exception e) {
+			Log.e("ERROR", "ERROR", e);
+		}
 	}
 
 	public static void startReceiverThreads() {
@@ -81,11 +96,7 @@ public class MessagingService extends IntentService {
 						try {
 							QueueingConsumer.Delivery delivery = consumer.nextDelivery();
 							com.nvidia.MessagingService.Message msg = new com.nvidia.MessagingService.Message(delivery.getBody());
-							Log.i("rabbitMQ", " [x] Received '" + msg + "'");
-							MessagingService.nBuilder.setContentText("From " + msg.source + ":\n" + msg);
-							MessagingService.nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received Message From " + msg.source + " at channel " + msg.channel + ":\n" + msg));
-							MessagingService.nBuilder.setTicker(msg.toString());
-							MessagingService.notificationManager.notify(MessagingService.notificationID++, MessagingService.nBuilder.build());
+							processMsg(msg);
 							queueReceiverChannel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
 						} catch (InterruptedException e) {
 							Log.i("info", "queueReceiver Killed");
@@ -124,15 +135,7 @@ public class MessagingService extends IntentService {
 						try {
 							com.nvidia.MessagingService.Message msg = new com.nvidia.MessagingService.Message(consumer.nextDelivery().getBody());
 							if (msg.source.equals(ID)) continue;
-							if (msg.type == Enum.MessageType.binary) {
-								processBinary(msg);
-								continue;
-							}
-							Log.i("rabbitMQ", " [x] Received Broadcast'" + msg + "'");
-							nBuilder.setContentText("Broadcast from " + msg.source + ":\n" + msg);
-							nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received broadcast From " + msg.source + " at channel " + msg.channel + ":\n" + msg));
-							nBuilder.setTicker(msg.toString());
-							notificationManager.notify(notificationID++, nBuilder.build());
+							processMsg(msg);
 						} catch (InterruptedException e) {
 							Log.i("info", "BroadcastReceiver Killed");
 							try {
@@ -202,6 +205,7 @@ public class MessagingService extends IntentService {
 	@Override
 	public void onCreate() {
 		super.onCreate();
+		context = this;
 		notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 		nBuilder = new NotificationCompat.Builder(this);
 		nBuilder.setContentTitle("NVIDIA Messaging Service");
@@ -278,7 +282,6 @@ public class MessagingService extends IntentService {
 			Intent service = new Intent(context, MessagingService.class);
 			context.startService(service);
 		}
-
 	}
 
 }

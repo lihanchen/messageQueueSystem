@@ -2,11 +2,13 @@ package com.nvidia.MessagingServiceTest;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.NotificationManager;
 import android.content.*;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
@@ -33,6 +35,20 @@ public class MyActivity extends Activity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		Intent intent = getIntent();
+		if (intent.getAction() == Intent.ACTION_VIEW) {
+			NotificationCompat.Builder nBuilder = new NotificationCompat.Builder(this);
+			nBuilder.setContentTitle("NVIDIA Messaging Service");
+			nBuilder.setSmallIcon(R.mipmap.notification_icon);
+			nBuilder.setVibrate(new long[]{500, 100});
+			nBuilder.setContentText("From notification");
+			nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received Message From asd"));
+			nBuilder.setTicker("poi");
+			((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(0, nBuilder.build());
+			Log.e("run", this.toString());
+			this.finish();
+		}
+
 		setContentView(R.layout.main);
 		EditText editTextID = (EditText) findViewById(R.id.editTextID);
 		EditText editTextIP = (EditText) findViewById(R.id.editTextIP);
@@ -40,8 +56,8 @@ public class MyActivity extends Activity {
 		editTextID.setText(sp.getString("ID", "LHC"));
 		editTextIP.setText(sp.getString("IP", "192.168.1.100"));
 		alertBuilder = new AlertDialog.Builder(MyActivity.this).setPositiveButton("OK", null).setTitle("Message");
-		Intent intent = new Intent();
-		intent.setComponent(new ComponentName("com.nvidia.MessagingService", "com.nvidia.MessagingService.MessagingService"));
+		intent = new Intent();
+		intent.setClassName("com.nvidia.MessagingService", "com.nvidia.MessagingService.MessagingService");
 		startService(intent);
 		bindService(intent, connection, Context.BIND_AUTO_CREATE);
 
