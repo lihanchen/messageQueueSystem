@@ -19,7 +19,6 @@ public class MessagingService extends IntentService {
 	final public static int RECONNECT_WAITING_TIME = 30000;
 	final static Messenger messenger = new Messenger(new IncomingHandler());
 	public static NotificationManager notificationManager;
-	static int notificationID=0;
 	static ConnectionFactory factory;
 	static Channel sendChannel = null, queueReceiverChannel;
 	static String queueReceiverConsumerTag;
@@ -31,7 +30,6 @@ public class MessagingService extends IntentService {
 	static boolean running = false;
 	static SharedPreferences sp;
 	static Context context;
-	static Dispatcher dispatcher;
 
 	public MessagingService() {
 		super("NVIDIA Messaging Services");
@@ -57,15 +55,15 @@ public class MessagingService extends IntentService {
 
 	public static synchronized void processMsg(com.nvidia.MessagingService.Message msg) {
 		Log.i("rabbitMQ", " [x] Received '" + msg + "'");
-//		MessagingService.nBuilder.setContentText("From " + msg.source + ":\n" + msg);
-//		MessagingService.nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received Message From " + msg.source + " at channel " + msg.channel + ":\n" + msg));
-//		MessagingService.nBuilder.setTicker(msg.toString());
-//		MessagingService.notificationManager.notify(MessagingService.notificationID++, MessagingService.nBuilder.build());
 		try {
-			Intent intent = new Intent();
-			intent.setClassName("com.nvidia.MessagingServiceTest", "com.nvidia.MessagingServiceTest.MyActivity");
-			intent.setAction(Intent.ACTION_VIEW);
-			intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+			Intent intent = Dispatcher.getIntent(msg.channel);
+			if (intent == null) {
+				Log.w("rabbitMQ", "Unregistered channel at channel" + msg.channel + ". Discarded");
+				return;
+			}
+			intent.putExtra("source", msg.source);
+			intent.putExtra("destination", msg.destination);
+			intent.putExtra("content", msg.content);
 			context.startActivity(intent);
 		} catch (Exception e) {
 			Log.e("ERROR", "ERROR", e);
@@ -215,6 +213,13 @@ public class MessagingService extends IntentService {
 		IP = sp.getString("IP", "172.17.186.227");
 		ID = sp.getString("ID", "defaultID");
 
+
+		//debug
+		Intent intent = new Intent();
+		intent.setClassName("com.nvidia.MessagingServiceTest", "com.nvidia.MessagingServiceTest.MyActivity");
+		intent.setAction(Intent.ACTION_VIEW);
+		intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+		Dispatcher.register(0, intent);
 	}
 
 	@Override

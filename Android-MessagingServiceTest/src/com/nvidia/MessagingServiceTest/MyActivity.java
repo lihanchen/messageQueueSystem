@@ -19,6 +19,7 @@ public class MyActivity extends Activity {
 	 */
 
 	public final static int MAX_FILE_SIZE = 10 * 1024 * 1024; //10MB
+	int notificationID = 0;
 
 	Messenger messenger = null;
 	ServiceConnection connection = new ServiceConnection() {
@@ -37,15 +38,15 @@ public class MyActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		Intent intent = getIntent();
 		if (intent.getAction() == Intent.ACTION_VIEW) {
+
 			NotificationCompat.Builder nBuilder = new NotificationCompat.Builder(this);
 			nBuilder.setContentTitle("NVIDIA Messaging Service");
 			nBuilder.setSmallIcon(R.mipmap.notification_icon);
 			nBuilder.setVibrate(new long[]{500, 100});
-			nBuilder.setContentText("From notification");
-			nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received Message From asd"));
-			nBuilder.setTicker("poi");
-			((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(0, nBuilder.build());
-			Log.e("run", this.toString());
+			nBuilder.setContentText("Received Message From " + intent.getStringExtra("source") + "\n" + (String) intent.getSerializableExtra("content"));
+			nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received Message From " + intent.getStringExtra("source") + "\n" + (String) intent.getSerializableExtra("content")));
+			nBuilder.setTicker((String) intent.getSerializableExtra("content"));
+			((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(notificationID++, nBuilder.build());
 			this.finish();
 		}
 

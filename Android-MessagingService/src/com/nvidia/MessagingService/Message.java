@@ -1,16 +1,17 @@
 package com.nvidia.MessagingService;
 
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 
 @SuppressWarnings("SuspiciousSystemArraycopy")
-public class Message {
+public class Message implements Serializable {
 	public static final byte VERSION = (byte) 1;
 	public String source;
 	public String destination;
-	public Object content;
+	public Serializable content;
 	public Enum.MessageType type;
 	public int channel;
 	//public boolean broadcast;
@@ -21,7 +22,7 @@ public class Message {
 		this(source, destination, channel, content, Enum.MessageType.string);
 	}
 
-	public Message(String source, String destination, int channel, Object content, Enum.MessageType messageType) {
+	public Message(String source, String destination, int channel, Serializable content, Enum.MessageType messageType) {
 		this.source = source;
 		this.destination = destination;
 		this.content = content;

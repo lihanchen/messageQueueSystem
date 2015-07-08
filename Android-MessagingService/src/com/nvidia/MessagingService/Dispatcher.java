@@ -3,7 +3,7 @@ package com.nvidia.MessagingService;
 import android.content.Intent;
 import android.util.SparseArray;
 
-public class Dispatcher {
+public abstract class Dispatcher {
 	private static SparseArray<Intent> channelMappingTable = new SparseArray<>();
 
 	public static boolean register(int channel, Intent intent) {
