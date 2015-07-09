@@ -8,6 +8,6 @@ public class Enum {
 	}
 
 	public enum IPCmessageWhat {
-		SendText, ChangeConnectionPreferences, CloseConnection, Success, Failed
+		SendText, ChangeConnectionPreferences, CloseConnection, Success, Failed, Register, Unregister
 	}
 }

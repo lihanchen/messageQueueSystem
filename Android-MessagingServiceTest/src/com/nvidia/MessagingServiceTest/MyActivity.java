@@ -14,9 +14,7 @@ import android.view.View;
 import android.widget.EditText;
 
 public class MyActivity extends Activity {
-	/**
-	 * Called when the activity is first created.
-	 */
+
 
 	public final static int MAX_FILE_SIZE = 10 * 1024 * 1024; //10MB
 	int notificationID = 0;
@@ -24,10 +22,21 @@ public class MyActivity extends Activity {
 	Messenger messenger = null;
 	ServiceConnection connection = new ServiceConnection() {
 		public void onServiceConnected(ComponentName name, IBinder service) {
+			Log.e("MSG", "ON connect");
 			messenger = new Messenger(service);
+			try {
+				Intent callbackIntent = new Intent();
+				callbackIntent.setClassName("com.nvidia.MessagingServiceTest", "com.nvidia.MessagingServiceTest.MyActivity");
+				callbackIntent.setAction(Intent.ACTION_VIEW);
+				callbackIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+				messenger.send(Message.obtain(null, Enum.IPCmessageWhat.Register.ordinal(), 0, -1, callbackIntent));
+			} catch (Exception e) {
+				Log.e("ERROR", "ERROR", e);
+			}
 		}
 
 		public void onServiceDisconnected(ComponentName name) {
+			Log.e("MSG", "ON disconnect");
 			messenger = null;
 		}
 	};
@@ -37,23 +46,23 @@ public class MyActivity extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		Intent intent = getIntent();
-		if (intent.getAction() == Intent.ACTION_VIEW) {
-
+		if (intent.getAction().equals(Intent.ACTION_VIEW)) {
 			NotificationCompat.Builder nBuilder = new NotificationCompat.Builder(this);
 			nBuilder.setContentTitle("NVIDIA Messaging Service");
 			nBuilder.setSmallIcon(R.mipmap.notification_icon);
 			nBuilder.setVibrate(new long[]{500, 100});
-			nBuilder.setContentText("Received Message From " + intent.getStringExtra("source") + "\n" + (String) intent.getSerializableExtra("content"));
-			nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received Message From " + intent.getStringExtra("source") + "\n" + (String) intent.getSerializableExtra("content")));
+			nBuilder.setContentText("Received Message From " + intent.getStringExtra("source") + "\n" + intent.getSerializableExtra("content"));
+			nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received Message From " + intent.getStringExtra("source") + "\n" + intent.getSerializableExtra("content")));
 			nBuilder.setTicker((String) intent.getSerializableExtra("content"));
 			((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(notificationID++, nBuilder.build());
 			this.finish();
+			return;
 		}
 
 		setContentView(R.layout.main);
 		EditText editTextID = (EditText) findViewById(R.id.editTextID);
 		EditText editTextIP = (EditText) findViewById(R.id.editTextIP);
-		SharedPreferences sp = getSharedPreferences("com.nvidia.MessagingServiceTest.sp", MODE_PRIVATE);
+		final SharedPreferences sp = getSharedPreferences("com.nvidia.MessagingServiceTest.sp", MODE_PRIVATE);
 		editTextID.setText(sp.getString("ID", "LHC"));
 		editTextIP.setText(sp.getString("IP", "192.168.1.100"));
 		alertBuilder = new AlertDialog.Builder(MyActivity.this).setPositiveButton("OK", null).setTitle("Message");
@@ -80,18 +89,6 @@ public class MyActivity extends Activity {
 				}
 			}
 		});
-
-//		(findViewById(R.id.buttonStopServer)).setOnClickListener(new View.OnClickListener() {
-//			@Override
-//			public void onClick(View v) {
-//				if (messenger == null) return;
-//				Intent intent = new Intent();
-//				intent.setComponent(new ComponentName("com.nvidia.MessagingService", "com.nvidia.MessagingService.MessagingService"));
-//				MyActivity.this.unbindService(connection);
-//				messenger = null;
-//				stopService(intent);
-//			}
-//		});
 
 		(findViewById(R.id.buttonSend)).setOnClickListener(new View.OnClickListener() {
 			public void onClick(View v) {
@@ -173,12 +170,24 @@ public class MyActivity extends Activity {
 //				}.start();
 //			}
 //		});
+
 	}
 
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
-		unbindService(connection);
+		if (getIntent().getAction().equals(Intent.ACTION_MAIN)) {
+			unbindService(connection);
+			try {
+				Intent callbackIntent = new Intent();
+				callbackIntent.setClassName("com.nvidia.MessagingServiceTest", "com.nvidia.MessagingServiceTest.MyActivity");
+				callbackIntent.setAction(Intent.ACTION_VIEW);
+				callbackIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+				messenger.send(Message.obtain(null, Enum.IPCmessageWhat.Unregister.ordinal(), 0, -1, callbackIntent));
+			} catch (Exception e) {
+				Log.e("ERROR", "ERROR", e);
+			}
+		}
 	}
 
 	public void showMessageBox(String msg) {

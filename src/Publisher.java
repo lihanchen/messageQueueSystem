@@ -27,7 +27,7 @@ public class Publisher {
 
 			while (true) {
 				message=scanner.nextLine();
-				channel.basicPublish(EXCHANGE_NAME, "", null, generateOneMsg("Computer", 1, message));
+				channel.basicPublish(EXCHANGE_NAME, "", null, generateOneMsg("Computer", 0, message));
 				System.out.println(" [x] Broadcast '" + message + "'");
 			}
 		}catch(Exception e){

@@ -215,11 +215,7 @@ public class MessagingService extends IntentService {
 
 
 		//debug
-		Intent intent = new Intent();
-		intent.setClassName("com.nvidia.MessagingServiceTest", "com.nvidia.MessagingServiceTest.MyActivity");
-		intent.setAction(Intent.ACTION_VIEW);
-		intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-		Dispatcher.register(0, intent);
+
 	}
 
 	@Override
@@ -278,6 +274,10 @@ public class MessagingService extends IntentService {
 					Log.i("Error", "Error", e);
 				}
 				running = false;
+			} else if (msg.what == Enum.IPCmessageWhat.Register.ordinal()) {
+				Dispatcher.register(msg.arg1, (Intent) msg.obj);
+			} else if (msg.what == Enum.IPCmessageWhat.Unregister.ordinal()) {
+				Dispatcher.unregister(msg.arg1, ((Intent) msg.obj).getComponent().getPackageName());
 			}
 		}
 	}
