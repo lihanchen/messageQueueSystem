@@ -45,6 +45,7 @@ public class MyActivity extends Activity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		final SharedPreferences sp = getSharedPreferences("com.nvidia.MessagingServiceTest.sp", MODE_PRIVATE);
 		Intent intent = getIntent();
 		if (intent.getAction().equals(Intent.ACTION_VIEW)) {
 			NotificationCompat.Builder nBuilder = new NotificationCompat.Builder(this);
@@ -54,15 +55,16 @@ public class MyActivity extends Activity {
 			nBuilder.setContentText("Received Message From " + intent.getStringExtra("source") + "\n" + intent.getSerializableExtra("content"));
 			nBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText("Received Message From " + intent.getStringExtra("source") + "\n" + intent.getSerializableExtra("content")));
 			nBuilder.setTicker((String) intent.getSerializableExtra("content"));
+			int notificationID = sp.getInt("NotificationID", 0);
 			((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(notificationID++, nBuilder.build());
+			sp.edit().putInt("NotificationID", notificationID).apply();
 			this.finish();
 			return;
 		}
-
 		setContentView(R.layout.main);
 		EditText editTextID = (EditText) findViewById(R.id.editTextID);
 		EditText editTextIP = (EditText) findViewById(R.id.editTextIP);
-		final SharedPreferences sp = getSharedPreferences("com.nvidia.MessagingServiceTest.sp", MODE_PRIVATE);
+
 		editTextID.setText(sp.getString("ID", "LHC"));
 		editTextIP.setText(sp.getString("IP", "192.168.1.100"));
 		alertBuilder = new AlertDialog.Builder(MyActivity.this).setPositiveButton("OK", null).setTitle("Message");
