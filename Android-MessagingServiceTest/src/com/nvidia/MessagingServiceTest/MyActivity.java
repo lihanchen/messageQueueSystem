@@ -17,12 +17,10 @@ public class MyActivity extends Activity {
 
 
 	public final static int MAX_FILE_SIZE = 10 * 1024 * 1024; //10MB
-	int notificationID = 0;
 
 	Messenger messenger = null;
 	ServiceConnection connection = new ServiceConnection() {
 		public void onServiceConnected(ComponentName name, IBinder service) {
-			Log.e("MSG", "ON connect");
 			messenger = new Messenger(service);
 			try {
 				Intent callbackIntent = new Intent();
@@ -36,7 +34,6 @@ public class MyActivity extends Activity {
 		}
 
 		public void onServiceDisconnected(ComponentName name) {
-			Log.e("MSG", "ON disconnect");
 			messenger = null;
 		}
 	};
@@ -103,7 +100,7 @@ public class MyActivity extends Activity {
 
 				String message = ((EditText) findViewById(R.id.editTextMsg)).getText().toString();
 				String target = ((EditText) findViewById(R.id.editTextTarget)).getText().toString();
-				Integer channel = 5;
+				Integer channel = 0;
 
 				Bundle bundle = new Bundle();
 				bundle.putString("destination", target);
