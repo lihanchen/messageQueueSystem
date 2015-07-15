@@ -1,7 +1,7 @@
 package com.nvidia.MessagingService;
 
-import android.app.IntentService;
 import android.app.NotificationManager;
+import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -14,9 +14,9 @@ import com.rabbitmq.client.*;
 import com.rabbitmq.client.impl.recovery.AutorecoveringConnection;
 
 
-public class MessagingService extends IntentService {
+public class MessagingService extends Service {
 	final public static String broadcastExchangeName = "broadcast_group";
-	final public static int RECONNECT_WAITING_TIME = 30000;
+	final public static int RECONNECT_WAITING_TIME = 3000;
 	final static Messenger messenger = new Messenger(new IncomingHandler());
 	public static NotificationManager notificationManager;
 	static ConnectionFactory factory;
@@ -30,10 +30,6 @@ public class MessagingService extends IntentService {
 	static boolean running = false;
 	static SharedPreferences sp;
 	static Context context;
-
-	public MessagingService() {
-		super("NVIDIA Messaging Services");
-	}
 
 //	public static synchronized void processBinary(com.nvidia.MessagingService.Message msg) {
 //		new Thread() {
@@ -204,15 +200,10 @@ public class MessagingService extends IntentService {
 	public void onCreate() {
 		super.onCreate();
 		context = this;
-		notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-		nBuilder = new NotificationCompat.Builder(this);
-		nBuilder.setContentTitle("NVIDIA Messaging Service");
-		nBuilder.setSmallIcon(R.mipmap.notification_icon);
-		nBuilder.setVibrate(new long[]{500, 100});
 		sp = getSharedPreferences("com.nvidia.MessagingService.sp", MODE_PRIVATE);
-		IP = sp.getString("IP", "172.17.186.227");
+		IP = sp.getString("IP", "192.168.1.100");
 		ID = sp.getString("ID", "defaultID");
-
+		MessagingService.running = false;
 
 		//debug
 
@@ -224,8 +215,9 @@ public class MessagingService extends IntentService {
 	}
 
 	@Override
-	protected void onHandleIntent(Intent intent) {
+	public int onStartCommand(Intent intent, int flags, int startId) {
 		connect();
+		return START_STICKY;
 	}
 
 	static class IncomingHandler extends Handler {
@@ -251,8 +243,8 @@ public class MessagingService extends IntentService {
 					}
 			} else if (msg.what == Enum.IPCmessageWhat.ChangeConnectionPreferences.ordinal()) {
 				Bundle bundle = (Bundle) msg.obj;
-				String IP = bundle.getString("IP");
-				String ID = bundle.getString("ID");
+				IP = bundle.getString("IP");
+				ID = bundle.getString("ID");
 				sp.edit().putString("IP", IP).putString("ID", ID).apply();
 				try {
 					if (connectingThread != null) connectingThread.interrupt();
