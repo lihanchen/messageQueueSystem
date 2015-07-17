@@ -23,11 +23,12 @@ public class MyActivity extends Activity {
 		public void onServiceConnected(ComponentName name, IBinder service) {
 			messenger = new Messenger(service);
 			try {
+				int bindingChannel = 0;
 				Intent callbackIntent = new Intent();
-				callbackIntent.setClassName("com.nvidia.MessagingServiceTest", "com.nvidia.MessagingServiceTest.MyActivity");
-				callbackIntent.setAction(Intent.ACTION_VIEW);
+				callbackIntent.setClassName("com.nvidia.ota", "com.nvidia.ota.UpdateCheckService");
+				callbackIntent.setAction("com.nvidia.ota.update_check.received_from_messaging_services");
 				callbackIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-				messenger.send(Message.obtain(null, Enum.IPCmessageWhat.Register.ordinal(), 0, -1, callbackIntent));
+				messenger.send(Message.obtain(null, Enum.IPCmessageWhat.Register.ordinal(), bindingChannel, -1, callbackIntent));
 			} catch (Exception e) {
 				Log.e("ERROR", "ERROR", e);
 			}

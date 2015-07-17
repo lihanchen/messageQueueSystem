@@ -51,18 +51,23 @@ public class MessagingService extends Service {
 
 	public static synchronized void processMsg(com.nvidia.MessagingService.Message msg) {
 		Log.i("rabbitMQ", " [x] Received '" + msg + "'");
+		Intent intent = Dispatcher.getIntent(msg.channel);
+		if (intent == null) {
+			Log.w("rabbitMQ", "Unregistered channel at channel" + msg.channel + ". Discarded");
+			return;
+		}
+		intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+		intent.putExtra("source", msg.source);
+		intent.putExtra("destination", msg.destination);
+		intent.putExtra("content", msg.content);
 		try {
-			Intent intent = Dispatcher.getIntent(msg.channel);
-			if (intent == null) {
-				Log.w("rabbitMQ", "Unregistered channel at channel" + msg.channel + ". Discarded");
-				return;
-			}
-			intent.putExtra("source", msg.source);
-			intent.putExtra("destination", msg.destination);
-			intent.putExtra("content", msg.content);
 			context.startActivity(intent);
 		} catch (Exception e) {
-			Log.e("ERROR", "ERROR", e);
+			try {
+				context.startService(intent);
+			} catch (Exception e1) {
+				Log.e("Messaging Service", "Unable to start Activity/Service " + intent.getComponent().getPackageName() + " using Intent");
+			}
 		}
 	}
 
