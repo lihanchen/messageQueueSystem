@@ -9,11 +9,8 @@ public abstract class Dispatcher {
 
 	public static boolean register(int channel, Intent intent) {
 		if (channelMappingTable.get(channel) != null) {
-			if (channelMappingTable.get(channel).getComponent().getPackageName().equals(intent.getComponent().getPackageName())) {
-				channelMappingTable.put(channel, intent);
-				return true;
-			} else
-				return false;
+			channelMappingTable.put(channel, intent);
+			return true;
 		}
 		Log.i("register", "channel" + channel);
 		channelMappingTable.put(channel, intent);

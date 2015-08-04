@@ -17,20 +17,41 @@ public class MyActivity extends Activity {
 
 
 	public final static int MAX_FILE_SIZE = 10 * 1024 * 1024; //10MB
+	public static String action;
 
+
+	//Register to service
 	Messenger messenger = null;
 	ServiceConnection connection = new ServiceConnection() {
 		public void onServiceConnected(ComponentName name, IBinder service) {
 			messenger = new Messenger(service);
-			try {
-				int bindingChannel = 0;
-				Intent callbackIntent = new Intent();
-				callbackIntent.setClassName("com.nvidia.ota", "com.nvidia.ota.UpdateCheckService");
-				callbackIntent.setAction("com.nvidia.ota.update_check.received_from_messaging_services");
-				callbackIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-				messenger.send(Message.obtain(null, Enum.IPCmessageWhat.Register.ordinal(), bindingChannel, -1, callbackIntent));
-			} catch (Exception e) {
-				Log.e("ERROR", "ERROR", e);
+
+			if (action.equals("Register")) {
+				try {
+					int bindingChannel = 0;
+					Intent callbackIntent = new Intent();
+					callbackIntent.setClassName("com.nvidia.MessagingServiceTest", "com.nvidia.MessagingServiceTest.MyActivity");
+					callbackIntent.setAction("push received");
+					callbackIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+					messenger.send(Message.obtain(null, Enum.IPCmessageWhat.Register.ordinal(), bindingChannel, -1, callbackIntent));
+					unbindService(connection);
+				} catch (Exception e) {
+					Log.e("ERROR", "ERROR", e);
+				}
+			}
+
+			if (action.equals("Reply")) {
+				try {
+					int bindingChannel = 0;
+					Bundle bundle = new Bundle();
+					bundle.putString("destination", "Computer");
+					bundle.putString("content", "Copy that!");
+					bundle.putInt("channel", bindingChannel);
+					messenger.send(Message.obtain(null, Enum.IPCmessageWhat.SendText.ordinal(), -1, -1, bundle));
+					unbindService(connection);
+				} catch (Exception e) {
+					Log.e("ERROR", "ERROR", e);
+				}
 			}
 		}
 
@@ -45,7 +66,10 @@ public class MyActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		final SharedPreferences sp = getSharedPreferences("com.nvidia.MessagingServiceTest.sp", MODE_PRIVATE);
 		Intent intent = getIntent();
-		if (intent.getAction().equals(Intent.ACTION_VIEW)) {
+
+
+		//Pushing service callback processor
+		if (intent.getAction().equals("push received")) {
 			NotificationCompat.Builder nBuilder = new NotificationCompat.Builder(this);
 			nBuilder.setContentTitle("NVIDIA Messaging Service");
 			nBuilder.setSmallIcon(R.mipmap.notification_icon);
@@ -56,9 +80,19 @@ public class MyActivity extends Activity {
 			int notificationID = sp.getInt("NotificationID", 0);
 			((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(notificationID++, nBuilder.build());
 			sp.edit().putInt("NotificationID", notificationID).apply();
+
+			//reply
+			Intent replyIntent = new Intent();
+			replyIntent.setClassName("com.nvidia.MessagingService", "com.nvidia.MessagingService.MessagingService");
+			action = "Reply";
+			startService(replyIntent);
+			bindService(replyIntent, connection, Context.BIND_AUTO_CREATE);
+
 			this.finish();
 			return;
 		}
+
+
 		setContentView(R.layout.main);
 		EditText editTextID = (EditText) findViewById(R.id.editTextID);
 		EditText editTextIP = (EditText) findViewById(R.id.editTextIP);
@@ -66,8 +100,11 @@ public class MyActivity extends Activity {
 		editTextID.setText(sp.getString("ID", "LHC"));
 		editTextIP.setText(sp.getString("IP", "192.168.1.100"));
 		alertBuilder = new AlertDialog.Builder(MyActivity.this).setPositiveButton("OK", null).setTitle("Message");
+
+		//Register to service
 		intent = new Intent();
 		intent.setClassName("com.nvidia.MessagingService", "com.nvidia.MessagingService.MessagingService");
+		action = "Register";
 		startService(intent);
 		bindService(intent, connection, Context.BIND_AUTO_CREATE);
 
@@ -138,38 +175,6 @@ public class MyActivity extends Activity {
 				}
 			}
 		});
-//
-//		(findViewById(R.id.buttonBroadcastPic)).setOnClickListener(new View.OnClickListener() {
-//			public void onClick(View v) {
-//				new Thread() {
-//					public void run() {
-//						try {
-//							File file = new File("/sdcard/vim.png");
-//							if (file.length() > MAX_FILE_SIZE) {
-//								showMessageBox("file too large");
-//								return;
-//							}
-//
-//							FileInputStream fis = new FileInputStream(file);
-//							byte buffer[] = new byte[(int) file.length()];
-//							if (fis.read(buffer) == -1) {
-//								showMessageBox("Error reading the file");
-//								return;
-//							}
-//							fis.close();
-//
-//							com.nvidia.MessagingService.Message msg
-//									= new com.nvidia.MessagingService.Message(editTextID.getText().toString(), null, 0, buffer, com.nvidia.MessagingService.Message.Type.binary);
-//
-//							messenger.send(Message.obtain(null, MessagingService.messageWhat.SendText.ordinal(), msg));
-//
-//						} catch (Exception e) {
-//							Log.e("ERROR", "ERROR", e);
-//						}
-//					}
-//				}.start();
-//			}
-//		});
 
 	}
 
@@ -177,7 +182,6 @@ public class MyActivity extends Activity {
 	protected void onDestroy() {
 		super.onDestroy();
 		if (getIntent().getAction().equals(Intent.ACTION_MAIN)) {
-			unbindService(connection);
 			try {
 				Intent callbackIntent = new Intent();
 				callbackIntent.setClassName("com.nvidia.MessagingServiceTest", "com.nvidia.MessagingServiceTest.MyActivity");

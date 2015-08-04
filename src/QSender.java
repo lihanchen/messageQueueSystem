@@ -12,12 +12,12 @@ public class QSender {
 			factory.setUri("amqp://localhost:5672");
 			Connection conn = factory.newConnection();
 			Channel channel = conn.createChannel();
-			channel.queueDeclare("lhc", false, false, false, null);
+			channel.queueDeclare("Computer", false, false, false, null);
 			String message = null;
 			Scanner scanner=new Scanner(System.in);
 			while (true) {
 				message=scanner.nextLine();
-				channel.basicPublish("", "lhc", null, message.getBytes());
+				channel.basicPublish("", "Computer", null, message.getBytes());
 				System.out.println(" [x] Sent '" + message + "'");
 			}
 		} catch (Exception e) {

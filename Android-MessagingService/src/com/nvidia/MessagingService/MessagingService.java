@@ -1,6 +1,5 @@
 package com.nvidia.MessagingService;
 
-import android.app.NotificationManager;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -8,7 +7,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.*;
 import android.os.Message;
-import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import com.rabbitmq.client.*;
 import com.rabbitmq.client.impl.recovery.AutorecoveringConnection;
@@ -18,36 +16,16 @@ public class MessagingService extends Service {
 	final public static String broadcastExchangeName = "broadcast_group";
 	final public static int RECONNECT_WAITING_TIME = 3000;
 	final static Messenger messenger = new Messenger(new IncomingHandler());
-	public static NotificationManager notificationManager;
 	static ConnectionFactory factory;
 	static Channel sendChannel = null, queueReceiverChannel;
 	static String queueReceiverConsumerTag;
 	static String IP;
 	static String ID;
-	static NotificationCompat.Builder nBuilder;
 	static Thread broadcastReceiver, queueReceiver, connectingThread;
 	static AutorecoveringConnection conn;
 	static boolean running = false;
 	static SharedPreferences sp;
 	static Context context;
-
-//	public static synchronized void processBinary(com.nvidia.MessagingService.Message msg) {
-//		new Thread() {
-//			public void run() {
-//				try {
-//					File file = new File("/sdcard/vim2.jpg");
-//					FileOutputStream fos = new FileOutputStream(file);
-//					fos.write((byte[]) msg.content);
-//					fos.close();
-//					nBuilder.setContentText("Received binary file from " + msg.source);
-//					nBuilder.setTicker("Received binary file");
-//					notificationManager.notify(notificationID++, nBuilder.build());
-//				} catch (Exception e) {
-//					Log.e("ERROR", "ERROR", e);
-//				}
-//			}
-//		}.start();
-//	}
 
 	public static synchronized void processMsg(com.nvidia.MessagingService.Message msg) {
 		Log.i("rabbitMQ", " [x] Received '" + msg + "'");

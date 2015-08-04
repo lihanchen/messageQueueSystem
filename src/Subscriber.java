@@ -27,7 +27,7 @@ class SubscriberThread extends Thread {
 	public void run() {
 		try {
 			ConnectionFactory factory = new ConnectionFactory();
-			factory.setUri("amqp://lhc:123@localhost:5672");
+			factory.setUri("amqp://localhost:5672");
 			Connection connection = factory.newConnection();
 			Channel channel = connection.createChannel();
 
